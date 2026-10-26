@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Bygg polyrytmer der hvert lag er en pendel du ser og hører. 23 EDM-sjangre med regler, forklaringer og rutenett.">
+<meta name="theme-color" content="#0a0b0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pendelgroove">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<title>Pendelgroove</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 16:9 instrument. Top bar = genre picker + sibling subgenres + transport. Left = stage (pendulum or grid view, lesson captions). Right = layer rack. Each subgenre repaints the room. Stacks in portrait. */
+:root{
+  color-scheme: dark;
+  padding-block: env(safe-area-inset-top, 0px) env(safe-area-inset-bottom, 0px);
+  --bg:#0a0b0d;
+  --accent:#9db8d9;
+  --panel:#111318;
+  --raised:#181b21;
+  --line:#242830;
+  --glow:#16181e;
+  --fg:#ece9e4;
+  --muted:#8a8d97;
+  --faint:#3a3e47;
+  --display:"Syncopate", "Arial Black", sans-serif;
+  --body:"IBM Plex Sans", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, monospace;
+  --tap:44px;
+}
+@supports (color: color-mix(in srgb, red 50%, blue)){
+  :root{
+    --panel:color-mix(in srgb, var(--accent) 5%, #0f1115);
+    --raised:color-mix(in srgb, var(--accent) 11%, #15171c);
+    --line:color-mix(in srgb, var(--accent) 13%, #22252c);
+    --glow:color-mix(in srgb, var(--accent) 13%, var(--bg));
+  }
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--fg)}
+body{margin:0;font-family:var(--body);font-size:15px;line-height:1.45;overflow:hidden;transition:background-color .5s;
+  -webkit-user-select:none;user-select:none;
+  padding-left:max(14px, env(safe-area-inset-left, 0px));
+  padding-right:max(14px, env(safe-area-inset-right, 0px));
+  padding-block:10px}
+button,select,input{font:inherit;color:inherit;touch-action:manipulation}
+button{cursor:pointer;background:none;border:0;padding:0}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+b{font-weight:600}
+
+.app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}
+
+/* ---- top bar ---- */
+.top{display:flex;align-items:center;gap:10px;min-width:0}
+.brand{font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.24em;white-space:nowrap;line-height:1.1}
+.brand span{color:var(--accent);transition:color .5s}
+.picker{flex:none;min-height:var(--tap);display:flex;align-items:center;gap:10px;padding:4px 10px 4px 12px;border:1px solid var(--accent);border-radius:9px;background:var(--raised);text-align:left}
+.picker i{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);flex:none}
+.picker small{display:block;font-family:var(--display);font-size:8.5px;letter-spacing:.2em;color:var(--muted);line-height:1.3}
+.picker b{display:block;font-size:15px;line-height:1.15;white-space:nowrap}
+.picker svg{width:16px;height:16px;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.subs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1;
+  -webkit-mask-image:linear-gradient(90deg,#000 90%,transparent);mask-image:linear-gradient(90deg,#000 90%,transparent);padding-right:24px}
+.subs::-webkit-scrollbar{display:none}
+.sub{flex:none;min-height:var(--tap);padding:4px 12px 4px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);
+  display:grid;grid-template-columns:auto auto;column-gap:8px;align-items:center;line-height:1.15;color:var(--muted);position:relative;text-align:left}
+.sub i{grid-row:span 2;width:8px;height:8px;border-radius:50%;background:var(--gc)}
+.sub b{font-size:13.5px;color:inherit;white-space:nowrap}
+.sub small{font-family:var(--mono);font-size:10.5px}
+.sub[aria-pressed=true]{color:var(--fg);border-color:var(--gc);background:var(--raised)}
+.sub[data-mod=true]::after{content:"";position:absolute;top:5px;right:5px;width:5px;height:5px;border-radius:50%;background:var(--fg)}
+.tempo{display:flex;align-items:center;gap:8px;flex:none}
+.knob{display:flex;flex-direction:column;gap:2px;min-width:96px}
+.knob label{display:flex;justify-content:space-between;font-family:var(--display);font-size:9px;letter-spacing:.2em;color:var(--muted)}
+.knob output{font-family:var(--mono);font-size:12px;color:var(--fg);letter-spacing:0;font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:var(--faint)}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--faint)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);margin-top:-9px;border:3px solid var(--bg)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--accent);border:3px solid var(--bg)}
+.btn{min-width:var(--tap);height:var(--tap);border:1px solid var(--line);border-radius:8px;background:var(--panel);display:flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;font-size:13px;color:var(--muted);white-space:nowrap}
+.btn:active{background:var(--raised);color:var(--fg)}
+.btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.play{width:54px;height:54px;border-radius:50%;border:1.5px solid var(--accent);display:grid;place-items:center;flex:none;transition:transform .1s, background-color .2s}
+.play:active{transform:scale(.94)}
+.play svg{width:22px;height:22px;fill:var(--accent)}
+.play.on{background:var(--accent)}
+.play.on svg{fill:var(--bg)}
+
+/* ---- main ---- */
+.main{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:10px;min-height:0}
+.stage{position:relative;display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  background:radial-gradient(120% 75% at 50% 0%, var(--glow) 0%, var(--bg) 72%)}
+.stbar{display:flex;align-items:center;gap:6px;padding:8px 8px 0;flex-wrap:wrap}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:2px}
+.seg button{height:34px;padding:0 12px;border-radius:6px;color:var(--muted);font-size:13px}
+.seg button[aria-pressed=true]{background:var(--raised);color:var(--fg)}
+.sp{flex:1}
+.learn{height:38px;padding:0 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);display:flex;align-items:center;gap:6px;font-size:13px;color:var(--fg)}
+.learn svg{width:16px;height:16px;fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.learn[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.learn[aria-pressed=true] svg{stroke:var(--bg)}
+.qbtn{width:38px;height:38px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:600}
+.cbox{position:relative;flex:1;min-height:0}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:manipulation}
+.cap{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 16px 14px;text-align:center;min-height:150px;justify-content:flex-end}
+.eyebrow{font-family:var(--display);font-size:10px;letter-spacing:.22em;color:var(--accent);text-transform:uppercase}
+.chords{display:flex;gap:4px;flex-wrap:wrap;justify-content:center}
+.chords span{font-family:var(--mono);font-size:12px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.chords span.on{color:var(--bg);background:var(--accent);border-color:var(--accent)}
+.big{font-size:clamp(15px,1.6vw,20px);font-weight:500;text-wrap:balance;max-width:44ch}
+.desc{color:var(--muted);font-size:13px;max-width:56ch;text-wrap:pretty}
+.desc b{color:var(--fg)}
+.rdash{display:flex;gap:6px}
+.rdash i{width:26px;height:2px;border-radius:1px;background:var(--faint)}
+.rdash i.on{background:var(--accent)}
+.rtitle{font-family:var(--display);font-weight:700;font-size:clamp(16px,2vw,27px);letter-spacing:.01em;text-transform:uppercase;line-height:1.15;text-wrap:balance;max-width:24ch}
+.rtitle em{font-style:normal;color:var(--accent);text-shadow:0 0 18px var(--accent)}
+.rhint{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--muted)}
+.lnav{display:flex;align-items:center;gap:8px;width:100%;max-width:440px}
+.lnav button{width:40px;height:36px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:17px}
+.lnav .bar{flex:1;height:3px;background:var(--faint);border-radius:2px;overflow:hidden}
+.lnav .bar i{display:block;height:100%;background:var(--accent);width:0}
+.lnav .x{width:auto;padding:0 10px;font-size:12px}
+.cycle{display:flex;align-items:center;gap:10px;font-family:var(--display);font-size:9px;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+.dots{display:flex;gap:7px}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.dots i.on{background:var(--accent)}
+
+.rack{display:flex;flex-direction:column;gap:8px;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.layer{flex:1 1 0;min-height:86px;display:flex;flex-direction:column;gap:7px;padding:9px 10px 10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;--c:#888;transition:opacity .25s}
+.layer.muted{opacity:.45}
+.layer.dim{opacity:.42}
+.layer.off{opacity:.16}
+.layer.focus{border-color:var(--c)}
+.layer.flash{animation:flash .5s ease-out}
+@keyframes flash{from{border-color:var(--c)}}
+.lhead{display:flex;align-items:center;gap:6px;min-width:0}
+.sw{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none;box-shadow:0 0 10px var(--c)}
+select{height:38px;background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:0 8px;min-width:0;max-width:150px}
+.len{display:flex;align-items:center;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:7px;height:38px;flex:none}
+.len button{width:36px;height:100%;font-family:var(--mono);font-size:18px;color:var(--muted)}
+.len button:active{color:var(--fg)}
+.len span{display:flex;flex-direction:column;align-items:center;line-height:1.05;min-width:50px;font-variant-numeric:tabular-nums}
+.len b{font-family:var(--mono);font-weight:500;font-size:14px}
+.len small{font-size:10px;color:var(--muted)}
+.ic{width:38px;height:38px;border-radius:7px;display:grid;place-items:center;color:var(--muted);flex:none}
+.ic:active{background:var(--raised);color:var(--fg)}
+.ic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ic[aria-pressed=true]{color:var(--accent)}
+.pads{flex:1;display:grid;gap:4px;grid-auto-rows:minmax(26px,1fr);touch-action:none;min-height:26px}
+.pad{border-radius:5px;background:var(--bg);border:1px solid var(--line);position:relative}
+.pad.b{border-color:var(--faint)}
+.pad.g{margin-left:5px}
+.pad.on{background:var(--c);border-color:var(--c)}
+.pad.now{box-shadow:inset 0 0 0 2px var(--fg)}
+.pad.on.now{animation:pop .2s ease-out;filter:brightness(1.35)}
+@keyframes pop{from{transform:scale(1.12)}to{transform:scale(1)}}
+.add{flex:none;min-height:var(--tap);border:1px dashed var(--faint);border-radius:10px;color:var(--muted)}
+
+/* ---- sheet (genre picker, glossary) ---- */
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.66);display:flex;justify-content:center;
+  padding:max(12px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px))}
+.sheet-in{background:var(--bg);border:1px solid var(--line);border-radius:14px;width:min(1120px,100%);overflow:auto;overscroll-behavior:contain;padding:16px 20px 28px;-webkit-user-select:text;user-select:text}
+.sheet-h{display:flex;align-items:center;gap:12px;position:sticky;top:-16px;background:var(--bg);padding-block:10px;margin-top:-10px;z-index:1}
+.sheet-h h2{margin:0;font-family:var(--display);font-size:16px;letter-spacing:.16em;text-transform:uppercase}
+.sheet-h p{margin:0;color:var(--muted);font-size:13px}
+.close{margin-left:auto;width:var(--tap);height:var(--tap);border-radius:8px;border:1px solid var(--line);display:grid;place-items:center;flex:none}
+.close svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.fam{display:flex;flex-direction:column;gap:10px;padding-block:14px;border-top:1px solid var(--line)}
+.famh{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.famh h3{font-family:var(--display);font-size:13px;letter-spacing:.2em;margin:0;text-transform:uppercase;color:var(--fc)}
+.famh span{color:var(--muted);font-size:13px}
+.famh small{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:8px}
+.tile{text-align:left;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);display:flex;flex-direction:column;gap:3px;min-height:92px}
+.tile:active{background:var(--raised)}
+.tile[aria-current=true]{border-color:var(--tc);background:var(--raised)}
+.tile .nm{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
+.tile .nm i{width:9px;height:9px;border-radius:50%;background:var(--tc);flex:none}
+.tile small{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.tile span{font-size:12.5px;color:var(--muted);line-height:1.35}
+.gl{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 24px;margin:8px 0 0}
+.gl div{padding:10px 0;border-top:1px solid var(--line)}
+.gl dt{font-weight:600}
+.gl dd{margin:2px 0 0;color:var(--muted);font-size:14px;max-width:60ch}
+.howto{margin:18px 0 0;padding-left:18px;color:var(--muted);display:grid;gap:6px;font-size:14px}
+.howto b{color:var(--fg)}
+.sheet h4{margin:22px 0 0;font-family:var(--display);font-size:11px;letter-spacing:.2em;color:var(--accent);text-transform:uppercase}
+
+/* ---- start wizard ---- */
+.wiz{position:fixed;inset:0;z-index:30;background:var(--bg);overflow:auto;overscroll-behavior:contain;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.wz{max-width:1060px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:18px}
+.wz-top{display:flex;align-items:center;gap:16px}
+.wz-dots{display:flex;gap:6px;margin-left:auto}
+.wz-dots i{width:28px;height:3px;border-radius:2px;background:var(--faint)}
+.wz-dots i.on{background:var(--accent)}
+.wz-skip{height:40px;padding:0 14px;border:1px solid var(--line);border-radius:8px;color:var(--muted);font-size:13px}
+.wz-head{display:flex;flex-direction:column;gap:8px;margin-top:2vh}
+.wz-head .eyebrow{color:var(--muted)}
+.wz-head h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,3.4vw,40px);text-transform:uppercase;letter-spacing:.02em;margin:0;line-height:1.1;text-wrap:balance}
+.wz-head h1 em{font-style:normal;color:var(--accent);text-shadow:0 0 22px var(--accent)}
+.wz-head p{margin:0;color:var(--muted);max-width:62ch}
+.wz-grid{display:grid;gap:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.wz-grid.goals .wz-card{min-height:min(46vh,340px);justify-content:flex-end;padding:24px}
+.wz-grid.goals .wz-card h3{font-size:clamp(20px,2.2vw,28px)}
+.wz-grid.goals .wz-card p{font-size:15px}
+.wz-grid.goals .rec{position:absolute;top:18px;left:18px}
+.wz-grid.goals .wz-card{position:relative}
+.wz-grid.goals .gi{width:44px;height:44px;margin-bottom:auto;margin-top:34px}
+.wz-grid.subs3{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.wz-card{text-align:left;padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--panel);display:flex;flex-direction:column;gap:8px;min-height:150px;transition:border-color .15s,transform .1s,background-color .15s;--fc:var(--accent)}
+.wz-card:hover,.wz-card:focus-visible{border-color:var(--fc);background:var(--raised)}
+.wz-card:active{transform:scale(.98)}
+.wz-card h3{margin:0;font-size:20px;font-weight:600;display:flex;align-items:center;gap:10px}
+.wz-card h3 i{width:12px;height:12px;border-radius:50%;background:var(--fc);box-shadow:0 0 12px var(--fc);flex:none}
+.wz-card p{margin:0;color:var(--muted);font-size:14px;line-height:1.4}
+.wz-card small{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.wz-card .tease{margin-top:auto;padding-top:6px;font-size:13px;color:var(--fg);opacity:.85}
+.wz-card .tease b{color:var(--fc)}
+.wz-card .gi{width:36px;height:36px;fill:none;stroke:var(--accent);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.wz-card .rec{align-self:flex-start;font-size:11px;font-family:var(--display);letter-spacing:.16em;color:var(--bg);background:var(--accent);padding:3px 8px;border-radius:999px;text-transform:uppercase}
+.wz-foot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:auto;padding-top:8px}
+.wz-back{height:44px;padding:0 16px;border:1px solid var(--line);border-radius:8px;color:var(--muted)}
+.wz-resume{height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--accent);color:var(--fg);background:var(--raised)}
+.wz-note{color:var(--muted);font-size:13px}
+#adv[aria-pressed=true]{color:var(--fg);border-color:var(--accent)}
+.brand{text-align:left;color:var(--fg);cursor:pointer;padding:4px 2px;border-radius:6px}
+body.simple #swKnob,body.simple #tap,body.simple #variant,body.simple .len,body.simple .ic[data-a=swap],body.simple .ic[data-a=dice],body.simple .ic[data-a=del],body.simple .add{display:none}
+
+/* ---- portrait / narrow ---- */
+@media (max-aspect-ratio: 1/1), (max-width: 760px){
+  body{overflow:auto;height:auto}
+  html{height:auto}
+  .app{height:auto}
+  .top{flex-wrap:wrap}
+  .subs{order:3;flex-basis:100%}
+  .picker{flex:1}
+  .tempo{flex-basis:100%;gap:6px;order:4}
+  .knob{min-width:0;flex:1 1 64px}
+  #fs{display:none}
+  .play{width:48px;height:48px}
+  .main{grid-template-columns:minmax(0,1fr)}
+  .cbox{flex:none;height:min(78vw,440px)}
+  .rack{overflow:visible}
+  .layer{flex:none}
+  .pads{grid-auto-rows:40px}
+  .lhead{gap:3px}
+  select{max-width:84px;padding:0 3px}
+  .len button{width:30px}
+  .len span{min-width:30px}
+  .len small{display:none}
+  .ic{width:32px}
+  .btn.variant span{display:none}
+  .learn span{display:none}
+  .wz-grid{grid-template-columns:minmax(0,1fr)}
+  .wz-card,.wz-grid.goals .wz-card{min-height:0}
+  .wz-grid.goals .gi{margin-top:30px}
+  .wz-head{margin-top:0}
+  .stbar{flex-wrap:nowrap}
+  .seg button{padding:0 9px}
+  .learn{padding:0 9px}
+}
+@media (prefers-reduced-motion: reduce){.pad.on.now,.layer.flash{animation:none}.play,body,.layer{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="top">
+    <button class="brand" id="home" aria-label="Åpne startmenyen">PENDEL<br><span>GROOVE</span></button>
+    <button class="picker" id="picker" aria-haspopup="dialog"><i></i><span><small id="pkFam">TECHNO</small><b id="pkSub">Hypnotisk</b></span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+    <div class="subs" id="subs" role="group" aria-label="Undersjangre"></div>
+    <div class="tempo">
+      <div class="knob"><label for="bpm">BPM <output id="bpmOut">140</output></label><input type="range" id="bpm" min="70" max="190" value="140"></div>
+      <div class="knob" id="swKnob"><label for="swing">SWING <output id="swOut">0</output></label><input type="range" id="swing" min="0" max="40" value="0"></div>
+      <button class="btn" id="adv" aria-pressed="false" title="Vis flere kontroller">Avansert</button>
+      <button class="btn variant" id="variant" aria-label="Ny variant av sjangeren"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="15" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/><circle cx="9" cy="15" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg><span>Ny variant</span></button>
+      <button class="btn" id="tap" aria-label="Tapp tempo">TAP</button>
+      <button class="btn" id="fs" aria-label="Fullskjerm" hidden><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button class="play" id="play" aria-label="Spill av"><svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4l13 8-13 8z"/></svg></button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="stage">
+      <div class="stbar">
+        <div class="seg" role="group" aria-label="Visning">
+          <button id="vPend" aria-pressed="true">Pendel</button><button id="vGrid" aria-pressed="false">Rutenett</button>
+        </div>
+        <span class="sp"></span>
+        <button class="learn" id="lRules" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 12h14M5 19h9"/></svg>3 regler</button>
+        <button class="learn" id="lBuild" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 20h16M7 16h10M10 12h4M12 4v4"/></svg><span>Bygg opp</span></button>
+        <button class="qbtn" id="help" aria-label="Ordliste og hjelp">?</button>
+      </div>
+      <div class="cbox"><canvas id="cv" aria-label="Visualisering av lagene"></canvas></div>
+      <div class="cap" id="cap"></div>
+    </div>
+    <div class="rack" id="rack"></div>
+  </div>
+</div>
+
+<div class="wiz" id="wiz" hidden><div class="wz" id="wzIn" role="dialog" aria-modal="true" aria-labelledby="wzT"></div></div>
+
+<div class="sheet" id="sheet" hidden><div class="sheet-in" role="dialog" aria-modal="true" aria-labelledby="sheetT" id="sheetIn"></div></div>
+
+<script>
+/* ================= sound catalogue ================= */
+const ROLES={kick:"Kick",snare:"Skarp og klapp",hat:"Hihat",perc:"Perkusjon",bass:"Bass",lead:"Synth",fx:"Effekt"};
+const SOUNDS={
+  kick:["Kick klassisk","kick"],k909:["Kick punch","kick"],k808:["Kick 808","kick"],kpsy:["Kick psy","kick"],kdist:["Kick forvrengt","kick"],
+  khard:["Kick hardstyle","kick"],kraw:["Kick raw","kick"],kgabber:["Kick gabber","kick"],kdisco:["Kick disco","kick"],
+  clap:["Klapp","snare"],clap2:["Klapp bred","snare"],snare:["Skarptromme","snare"],gate:["Gated skarp","snare"],snrim:["Skarp tett","snare"],snap:["Fingerknips","snare"],
+  hat:["Hihat","hat"],hat909:["Hihat metall","hat"],ohat:["Åpen hat","hat"],ride:["Ride","hat"],shaker:["Shaker","hat"],tamb:["Tamburin","hat"],
+  rim:["Rim","perc"],tom:["Tom","perc"],conga:["Conga høy","perc"],congalo:["Conga lav","perc"],cowbell:["Kubjelle","perc"],clave:["Clave","perc"],block:["Treblokk","perc"],
+  bass:["Bass sag","bass"],sub:["Sub","bass"],rumble:["Rumle","bass"],reese:["Reese","bass"],psybass:["Psy-bass","bass"],acid:["Acid 303","bass"],octbass:["Oktavbass","bass"],wob:["Wobble","bass"],revbass:["Revers-bass","bass"],
+  arp:["Arp","lead"],pluck:["Pluck","lead"],stab:["Akkordstab","lead"],organ:["Orgel","lead"],chord:["Strykere","lead"],pad:["Pad","lead"],supersaw:["Supersaw","lead"],
+  hoover:["Hoover","lead"],screech:["Screech","lead"],guitar:["Funkgitar","lead"],psylead:["Psy-squelch","lead"],bell:["Klokke","lead"],
+  zap:["Zap","fx"],laser:["Laser","fx"],sweep:["Sveip","fx"],chirp:["Kvitter","fx"]
+};
+const ROLE_DENS={kick:.25,snare:.12,hat:.5,perc:.35,bass:.4,lead:.45,fx:.1};
+const CHORDAL=new Set(["stab","organ","chord","guitar","pad"]);
+const DUR={pad:16,chord:3,sub:2,reese:3,wob:3,revbass:3,sweep:4,bell:3,hoover:2,rumble:2};
+const nameOf=k=>(SOUNDS[k]||["Lag"])[0];
+const roleOf=k=>(SOUNDS[k]||SOUNDS.rim)[1];
+
+/* ================= genre families =================
+   L (layers): [sound, sound pool, main pattern, alternative patterns, random density, note]
+   R (rules): t title, s line, h listening hint, on focus layers, only = only these play,
+              late = silent first 2 of every 4 bars, gap = silent last 2 of every 4 bars        */
+const FAMILIES=[
+{id:"techno",name:"Techno",about:"Repetisjon, trykk og lange fraser.",bg:"#090b0e",c:["#9db8d9","#5f8fc4","#d3dde8","#78b0a8","#a79ac9","#6c7a91"],subs:[
+ {id:"hypno",name:"Hypnotisk",bpm:138,sw:0,tonic:"F",root:43.65,key:"F-moll",mood:"Repetisjon til transe",prog:["Fm"],bm:[0],tones:[0],arp:[0],acc:"#e8a85c",
+  d:"Én tone som aldri stopper over en rullende rumle. Spenningen kommer fra når ting slipper inn, ikke fra melodi.",
+  L:[["kick",["kick","k909"],"x...x...x...x...",[],0,"Rett firer som aldri forandrer seg."],
+     ["rumble",["rumble","sub"],"..x...x...x...x.",[".xx..xx..xx..xx."],0,"Rumlen fyller rommet mellom kickene og limer dem sammen."],
+     ["pluck",["pluck","psylead","stab","arp"],"xxxxxxxxxxxxxxxx",["x.xxx.xxx.xxx.xx","xx.xxx.xxx.xxx.x"],0,"Leaden er én tone i 16-deler fra start til slutt."],
+     ["hat909",["hat909","hat","ride"],"..x...x...x...x.",["..x.","..xx"],0,"Hihatene kommer sent og gir løft når de endelig er der."],
+     ["clap",["clap","snap","rim"],"....x.......x...",[],0,"Tørr klapp på 2 og 4."]],
+  R:[{t:"Tonen flytter seg aldri.",s:"Én tone. Ingen **melodi** i det hele tatt.",h:"leaden alene, én tone fra start til slutt",on:[2],only:[2]},
+     {t:"Stopp aldri leaden.",s:"Trommene trekker seg tilbake. Leaden **fortsetter**.",h:"trommene faller ut i takt 3 og 4",on:[2],gap:[0,1,3,4]},
+     {t:"La toppen komme sent.",s:"Start med lite topp. La hatsene **komme**.",h:"hatsene kommer inn i takt 3",on:[3],late:[3]}]},
+ {id:"peak",name:"Peak time",bpm:132,sw:0,tonic:"A",root:55,key:"A-moll",mood:"Klokka to på hovedscenen",prog:["Am"],bm:[0],acc:"#9db8d9",
+  d:"Tung kick og rumle som ett instrument, klapp som anker og perkusjon som bygger trykk uten melodi.",
+  L:[["k909",["k909","kick","kdist"],"x...x...x...x...",[],0,"Tung kick på hvert slag."],
+     ["rumble",["rumble","sub"],"..x...x...x...x.",[".xxx.xxx.xxx.xxx"],0,"Rumlen ligger på offbeat og svarer kicken."],
+     ["clap",["clap","clap2"],"....x.......x...",[],0,"Klapp på 2 og 4 er ankeret."],
+     ["ohat",["ohat","ride"],"..x...x...x...x.",[],0,"Åpen hat på offbeat."],
+     ["hat",["hat","shaker","hat909"],"xxxxxxxxxxxxxxxx",["x.xxx.xxx.xxx.xx"],.7,"16-dels hat driver farten."],
+     ["tom",["tom","conga","rim","cowbell"],"...x..x....x..x.",["..x..x....x..x.."],.3,"Perkusjon gir variasjon uten melodi."]],
+  R:[{t:"Kick og rumle er ett.",s:"Rumlen fyller **offbeaten**, så bunnen aldri hviler.",h:"kick og rumle alene",on:[0,1],only:[0,1]},
+     {t:"Bygg med perkusjon.",s:"Ikke mer melodi. Mer **trommer**.",h:"hat og tom kommer inn i takt 3",on:[4,5],late:[4,5]},
+     {t:"Klappen er ankeret.",s:"2 og 4 holder **kroppen** i takt.",h:"alt annet tar pause i takt 3 og 4",on:[2],gap:[1,3,4,5]}]},
+ {id:"industrial",name:"Industriell",bpm:150,sw:0,tonic:"G",root:49,key:"G-moll",mood:"Betong og stål",prog:["Gm"],bm:[0],acc:"#c8643b",
+  d:"Forvrengt kick, hver 16-del fylt og metall i stedet for melodi.",
+  L:[["kdist",["kdist","k909","khard"],"x...x...x...x...",[],0,"Kicken er forvrengt så den sprekker."],
+     ["rumble",["rumble","reese"],".xxx.xxx.xxx.xxx",[],0,"Rumlen fyller alle 16-delene mellom kickene."],
+     ["ride",["ride","hat909","ohat"],"..x...x...x...x.",["..xx..xx..xx..xx"],0,"Ride på offbeat."],
+     ["hat",["hat","shaker","hat909"],"xxxxxxxxxxxxxxxx",[],.8,"16-deler uten pause."],
+     ["zap",["zap","laser","snrim","clap"],"......x.......x.",["...x..x...x..x.."],.2,"Metalliske skudd i stedet for toner."]],
+  R:[{t:"Forvreng kicken.",s:"Kicken skal **sprekke**, ikke bare dunke.",h:"kicken alene",on:[0],only:[0]},
+     {t:"Fyll hver 16-del.",s:"Rumle og hat dekker **alt** mellom slagene.",h:"rumle og hat alene",on:[1,3],only:[1,3]},
+     {t:"Ingen melodi.",s:"Støy og metall gjør **jobben**.",h:"ride og skudd over kicken",on:[2,4],only:[0,2,4]}]},
+ {id:"poly",name:"Polyrytmisk",bpm:140,sw:0,tonic:"A",root:55,key:"A-moll",mood:"Groove i 3, beat i 4",prog:["Am"],bm:[0,0,0,3],acc:"#8fa8c8",
+  d:"Bass og perkusjon gjentar seg hvert 3. slag mens kicken holder 4. De møtes igjen hver 3. takt.",
+  L:[["kick",["kick","k909","k808"],"x...x...x...x...",["x...x...x...x..x"],0,"Kicken holder 4 slag."],
+     ["bass",["bass","reese","acid","sub"],"..x...xx..x.",["..x..x..x...",".x.x..x.x..x","..xx..x...x."],.4,"Bassen er 3 slag lang og starter et nytt sted hver takt."],
+     ["shaker",["shaker","rim","clave","block","conga"],"...x.x..x...",["x..x..x..x.x","..x..x"],.35,"Perkusjonen følger bassen i 3."],
+     ["ohat",["ohat","ride","hat909"],"..x.",["..x...x.","..xx"],0,"Åpen hat på hver offbeat."],
+     ["rim",["rim","clap","snap","zap"],"x.....x...x.....",["....x.......x...","x..x..x..x..x..."],.2,"Rimskudd gir små aksenter."]],
+  R:[{t:"Beatet går i fire.",s:"Kicken teller **1-2-3-4**, hele tiden.",h:"kick og hat alene",on:[0,3],only:[0,3]},
+     {t:"Grooven går i tre.",s:"Bass og perkusjon gjentar seg hvert **3. slag**.",h:"se markørene der mønsteret starter på nytt",on:[1,2],only:[1,2]},
+     {t:"Møtes hver 3. takt.",s:"3 × 4 = 12 slag. To takter på rad låter aldri **likt**.",h:"følg prikkene for syklusen",on:[0,1,2]}]},
+ {id:"acid",name:"Acid",bpm:135,sw:0,tonic:"A",root:55,key:"A-moll",mood:"Smiley og strobe",prog:["Am"],bm:[0,0,12,0,0,3,0,7],acc:"#c6f04d",
+  d:"En 303-bassynth med resonans bærer låta. Trommene holder seg enkle.",
+  L:[["k909",["k909","kick"],"x...x...x...x...",[],0,"Rett firer."],
+     ["acid",["acid","psybass"],"xx.xx.xxx.xx.x.x",["x.xxx.x.xx.xxx.x","xxx.xx.xx.xxx.xx"],.65,"303-linjen bærer låta. Aksentene lager mønsteret."],
+     ["clap",["clap","snare"],"....x.......x...",[],0,"Klapp på 2 og 4."],
+     ["ohat",["ohat","ride"],"..x.",[],0,"Åpen hat på offbeat."],
+     ["hat",["hat","hat909"],"xxxx",["x.xx"],.7,"16-dels hat."]],
+  R:[{t:"303 er stjernen.",s:"Én bassynth med **resonans** bærer alt.",h:"303 alene",on:[1],only:[1]},
+     {t:"Aksent lager grooven.",s:"Hver tredje tone åpner **filteret** mer.",h:"hør tonene som stikker ut",on:[1],only:[0,1]},
+     {t:"Hold trommene enkle.",s:"Kick, klapp og hat. **Ikke** mer.",h:"trommene alene",on:[0,2,3,4],only:[0,2,3,4]}]}
+]},
+{id:"house",name:"House",about:"Groove, swing og varme akkorder.",bg:"#0e0a09",c:["#f08a5d","#f7c59f","#e05a6d","#ffd166","#c27a9a","#8fb8a8"],subs:[
+ {id:"deep",name:"Deep house",bpm:122,sw:12,tonic:"D",root:73.42,key:"D-moll",mood:"Sen kveld, lave lys",prog:["Dm9","Gm7","Fmaj7","Am7"],bm:[0],acc:"#d98a6c",
+  d:"Myke trommer, subbass mellom kickene og lange akkorder med 7- og 9-ere.",
+  L:[["kdisco",["kdisco","kick"],"x...x...x...x...",[],0,"Myk kick på hvert slag."],
+     ["snap",["snap","clap","rim"],"....x.......x...",[],0,"Fingerknips på 2 og 4 i stedet for hard klapp."],
+     ["shaker",["shaker","hat","tamb"],"x.xx",["xxxx",".xxx"],.6,"Shaker med swing gir det myke draget."],
+     ["sub",["sub","bass","octbass"],"..x...x...x...x.",["..x..x....x..x..","...x..x...x..x.."],.3,"Subbassen ligger på offbeat, aldri oppå kicken."],
+     ["chord",["chord","organ","pad","stab"],"x.....x.........",["x..x.....x......","..x.....x......."],.15,"Akkorder med 7- og 9-ere: {prog}."]],
+  R:[{t:"Akkorder med farge.",s:"7-ere og 9-ere gjør det **varmt**: {prog}.",h:"akkordene alene",on:[4],only:[4]},
+     {t:"Bassen unngår kicken.",s:"Kick på slaget, bass **mellom**.",h:"kick og bass alene",on:[0,3],only:[0,3]},
+     {t:"Swing på toppen.",s:"Shakeren drar seg **bakover**.",h:"hver andre 16-del kommer litt sent",on:[2],only:[0,2]}]},
+ {id:"tech",name:"Tech house",bpm:126,sw:8,tonic:"G",root:49,key:"G-moll",mood:"Groove i kjelleren",prog:["Gm"],bm:[0,0,12,0,0,3,0,10],acc:"#f08a5d",
+  d:"Bassen er melodien, perkusjonen går i loop og pausene gir trøkk.",
+  L:[["kick",["kick","k909"],"x...x...x...x...",[],0,"Kick på hvert slag."],
+     ["clap",["clap","snap","clap2"],"....x.......x...",[],0,"Klapp på 2 og 4."],
+     ["ohat",["ohat","ride"],"..x.",[],0,"Åpen hat på offbeat."],
+     ["bass",["bass","acid","octbass"],"..xx..x.x.xx..x.",["...x.xx...xx.x.x",".xx..x.x.xx..x.."],.45,"Bassen hopper i 16-deler rundt kicken."],
+     ["block",["block","conga","cowbell","clave","rim"],"..x..x.x..x...x.",["x..x..x..x..x...",".x...x..x.x...x."],.35,"Perkusjonen er en liten loop."],
+     ["chirp",["chirp","zap","snrim"],"...........x....",["......x........x"],.08,"Små stikk som detaljer."]],
+  R:[{t:"Bassen er melodien.",s:"Én tone som **hopper** rundt kicken.",h:"kick og bass alene",on:[3],only:[0,3]},
+     {t:"Perkusjon i loop.",s:"Treblokk og hat gir **groove**.",h:"perkusjonen alene",on:[4],only:[2,4]},
+     {t:"Ta ut kicken.",s:"Når kicken forsvinner, **savner** du den.",h:"kicken borte i takt 3 og 4",on:[0],gap:[0]}]},
+ {id:"afro",name:"Afro house",bpm:120,sw:0,tonic:"A",root:55,key:"A-moll",mood:"Trommer under stjernene",prog:["Am7","Am7","Fmaj7","G"],bm:[0],acc:"#e6b450",
+  d:"Congaer i 3+3+2 over en rolig firer, med lange akkorder som gir rom.",
+  L:[["kick",["kick","kdisco","k808"],"x...x...x...x...",[],0,"Rolig firer."],
+     ["congalo",["congalo","tom","conga"],"x..x..x...x..x..",["x..x..x..x..x..."],.3,"Lav conga i 3+3+2."],
+     ["conga",["conga","block","clave"],"..x..x",["x..x.x",".x..x."],.35,"Høy conga går i 1½ slag og vrir seg rundt."],
+     ["shaker",["shaker","tamb","hat"],"x.xx",["xxxx"],.7,"Shakeren går hele tiden."],
+     ["sub",["sub","bass"],"..x.......x.....",["..x..x....x....."],.2,"Bassen er sparsom og dyp."],
+     ["pad",["pad","chord","bell"],"x...............",["x.......x......."],0,"Lange akkorder: {prog}."]],
+  R:[{t:"Trommene snakker.",s:"Congaer i **3+3+2** over kicken.",h:"bare trommer",on:[1,2],only:[0,1,2,3]},
+     {t:"Tre mot fire.",s:"Høy conga gjentar seg hvert **1½ slag**.",h:"se markørene flytte seg",on:[2],only:[0,2]},
+     {t:"Gi akkordene tid.",s:"Én akkord per takt, **lang** og rolig.",h:"pad og bass alene",on:[4,5],only:[4,5]}]},
+ {id:"classic",name:"Klassisk house",bpm:124,sw:14,tonic:"F",root:43.65,key:"F-moll",mood:"Chicago, sent 80-tall",prog:["Fm7","Bbm7","Eb","Cm7"],bm:[0,12,0,7],acc:"#ff9e6b",
+  d:"Fire på gulvet, hat på offbeat og en akkordstab som går i 3 slag.",
+  L:[["kick",["kick","kdisco","k909"],"x...x...x...x...",[],0,"Kick på hvert slag."],
+     ["clap",["clap","clap2","snap","snare"],"....x.......x...",["....x.......x..x"],0,"Klapp på 2 og 4."],
+     ["ohat",["ohat","ride","tamb"],"..x.",[],0,"Åpen hat på offbeat."],
+     ["hat",["hat","hat909","shaker","tamb"],"xx.x",["x.xx","xxxx",".x.x"],.6,"Lukket hat med swing."],
+     ["stab",["stab","organ","chord","pluck"],"..x..x......",["x..x..x.....","..x...x..x..",".x..x..x...."],.25,"Akkordstaben er 3 slag lang."],
+     ["bass",["bass","sub","octbass","reese"],"..x...x...x...x.",["..x..xx...x..x.x","..xx..x...xx..x."],.3,"Bassen på offbeat."]],
+  R:[{t:"Fire på gulvet.",s:"Kick på **hvert** slag, klapp på 2 og 4.",h:"kick og klapp alene",on:[0,1],only:[0,1]},
+     {t:"Hatten på offbeat.",s:"«Ts» mellom hvert **slag**.",h:"åpen hat og kick",on:[2],only:[0,2]},
+     {t:"Staben går i tre.",s:"3 slag lang, så den **forskyves** hver takt.",h:"stab og kick",on:[4],only:[0,4]}]}
+]},
+{id:"trance",name:"Trance",about:"Melodi, oppbygging og løft.",bg:"#08090f",c:["#7fd1e8","#9b8cf2","#5fe3c0","#e27fd9","#f2e18c","#c3d2ff"],subs:[
+ {id:"uplift",name:"Uplifting",bpm:138,sw:0,tonic:"A",root:55,key:"A-moll",mood:"Hendene i været",prog:["Am","F","C","G"],bm:[0],arp:[0,1,2,3,2,1],acc:"#7fd1e8",
+  d:"Rullende bass mellom kickene, en arp som bærer melodien og sveip som bygger opp.",
+  L:[["kick",["kick","k909"],"x...x...x...x...",[],0,"Rett firer."],
+     ["bass",["bass","reese","psybass"],".xxx.xxx.xxx.xxx",[".x.x.x.x.x.x.x.x",".xx..xx..xx..xx."],0,"Rullende bass: tre 16-deler etter hver kick."],
+     ["ohat",["ohat","ride","hat909"],"..x.",["..xx"],0,"Offbeat-hat løfter energien."],
+     ["clap",["clap","clap2","snare"],"....x.......x...",[],0,"Klapp på 2 og 4."],
+     ["arp",["arp","pluck","bell","supersaw"],"xx.x.x",["x.xx.x","xxx","x.x.x.x.x."],.6,"Arpen er 1½ slag og følger {prog}."],
+     ["sweep",["sweep","zap","chirp"],"............x...................",["x...............","............x..."],.08,"Sveipet bygger spenning mot neste frase."]],
+  R:[{t:"Bassen ruller.",s:"Tre 16-deler etter hver kick. Bunnen **ruller**.",h:"kick og bass alene",on:[1],only:[0,1]},
+     {t:"Arpen bærer melodien.",s:"6 sekstendeler som **klatrer** gjennom {prog}.",h:"arpen alene",on:[4],only:[4]},
+     {t:"Bygg opp med sveip.",s:"Støy som stiger mot **neste** frase.",h:"sveipet kommer inn i takt 3",on:[5],late:[5]}]},
+ {id:"prog",name:"Progressive",bpm:128,sw:0,tonic:"E",root:41.2,key:"E-moll",mood:"Soloppgang på stranda",prog:["Em","C","G","D"],bm:[0],arp:[0,2,1,3,2,4],acc:"#9b8cf2",
+  d:"Pluck på offbeat med luft mellom tonene, én akkord per takt og lag som kommer gradvis.",
+  L:[["kick",["kick","k909"],"x...x...x...x...",[],0,"Rett firer."],
+     ["bass",["bass","sub","octbass"],"..x...x...x...x.",[".xx..xx..xx..xx."],0,"Offbeat-bass."],
+     ["hat",["hat","shaker"],"..x.",["..xx"],0,"Hat på offbeat."],
+     ["clap",["clap","snap"],"....x.......x...",[],0,"Klapp på 2 og 4."],
+     ["pluck",["pluck","bell","arp"],"..x...x..x....x.",["x..x..x...x..x..","..x..x..x..x..x."],.35,"Pluck med luft mellom tonene."],
+     ["pad",["pad","chord"],"x...............",[],0,"Pad som skifter akkord hver takt."]],
+  R:[{t:"Luft mellom tonene.",s:"Pluck på **offbeat**, ikke på slaget.",h:"pluck og kick",on:[4],only:[0,4]},
+     {t:"Én akkord per takt.",s:"Fire takter: **{prog}**.",h:"pad og bass alene",on:[5,1],only:[5,1]},
+     {t:"Utvikle sakte.",s:"Nye lag kommer **gradvis**.",h:"pluck og pad kommer inn i takt 3",on:[4,5],late:[4,5]}]},
+ {id:"psy",name:"Psytrance",bpm:145,sw:0,tonic:"F#",root:46.25,key:"F♯ frygisk",mood:"Skog klokka seks om morgenen",prog:["F#m"],bm:[0],tones:[0,1,7,8,12,13,19],arp:[0,2,1,4,3,5,1,6],acc:"#ff4fd8",
+  d:"Kort kick, bass på de tre 16-delene etter, og en squelch i frygisk skala.",
+  L:[["kpsy",["kpsy","k909"],"x...x...x...x...",[],0,"Kort og tørr kick."],
+     ["psybass",["psybass","acid","bass"],".xxx",[".xx.",".x.x","..xx"],0,"Bassen fyller de tre 16-delene etter kicken."],
+     ["hat909",["hat909","hat","ride","ohat"],"..x.",["x.x.","..xx"],.5,"Hat på offbeat."],
+     ["clap",["clap","snare","snap"],"....x.......x...",["........x.......","....x..x....x..."],0,"Klapp på 2 og 4."],
+     ["psylead",["psylead","acid","arp","bell"],"x.xx.x",["xx.","x.x.xx","xxx.x"],.55,"Squelchen er 1½ slag lang."],
+     ["zap",["zap","laser","chirp","sweep"],"x...........x...",["......x..x......","x..............."],.1,"Zaps er krydder."]],
+  R:[{t:"Kick, bass, bass, bass.",s:"Bassen fyller de **tre** 16-delene etter kicken.",h:"kick og bass alene",on:[0,1],only:[0,1]},
+     {t:"Kicken er kort.",s:"Kort kick gir **plass** til bassen.",h:"kicken alene",on:[0],only:[0]},
+     {t:"Frygisk og mørkt.",s:"Squelchen bruker den lille **sekunden**.",h:"tonen rett over grunntonen",on:[4],only:[0,4]}]}
+]},
+{id:"bass",name:"Bass og breaks",about:"Breakbeats, sub og halvtempo.",bg:"#090c0b",c:["#3fc1a5","#ff8a3d","#d9e2d0","#5b8def","#f25f5c","#c9b37e"],subs:[
+ {id:"dnb",name:"Drum & bass",bpm:174,sw:6,tonic:"F",root:43.65,key:"F-moll",mood:"Nattbuss i full fart",prog:["Fm","Db","Ab","Eb"],bm:[0,0,12,0],acc:"#3fc1a5",
+  d:"Totrinns break med skarp på 2 og 4. Shakeren går i 1½ slag og bassen i 6, så alt møtes hver 3. takt.",
+  L:[["kick",["kick","k909","k808"],"x.........x.....",["x.........x.x...","x.x.......x....."],0,"Kick på 1 og «og» av 3."],
+     ["snare",["snare","snrim","clap"],"....x.......x...",["....x..x....x...","....x.......x..x"],0,"Skarp på 2 og 4."],
+     ["hat",["hat","ride","hat909","shaker"],"x.",["xx","x.x.x.xx"],.6,"8-dels hat."],
+     ["shaker",["shaker","tamb","conga","rim"],"..x..x",["x..x.x",".x..x."],.35,"Shakeren er 1½ slag lang."],
+     ["reese",["reese","sub","wob","bass"],"x.....x...x.....x...x...",["x.......x.....x.x.......","x..x....x.....x..x......"],.2,"Reese-bassen er 6 slag lang."]],
+  R:[{t:"Totrinns break.",s:"Kick på 1 og «og» av 3, skarp på **2 og 4**.",h:"kick og skarp alene",on:[0,1],only:[0,1]},
+     {t:"Hatten gir farten.",s:"8-deler i **174** BPM.",h:"hat over breaket",on:[2],only:[0,1,2]},
+     {t:"Bassen i lange fraser.",s:"Reese-bassen er **6** slag lang.",h:"bass og kick",on:[4],only:[0,4]}]},
+ {id:"neuro",name:"Neurofunk",bpm:174,sw:0,tonic:"F",root:43.65,key:"F-moll",mood:"Maskinrommet",prog:["Fm"],bm:[0,0,1,0,-1,0],acc:"#5b8def",
+  d:"Korte reese-stikk som svarer trommene, kromatisk bevegelse og et stramt break.",
+  L:[["kick",["kick","k909"],"x.........x.....",["x.....x...x....."],0,"Totrinns kick."],
+     ["snare",["snare","snrim"],"....x.......x...",[],0,"Skarp på 2 og 4."],
+     ["hat",["hat","hat909"],"x.x.x.xxx.x.x.x.",["xxx.x.xxx.x.xx.x"],.55,"Tett hat."],
+     ["reese",["reese","wob","acid"],"x.x...x.x..x....",["x...x.x...x.x...","xx..x...x.x..x.."],.4,"Reese-bass i korte, aggressive stikk."],
+     ["laser",["laser","zap","chirp"],"...x.....x....x.",[".......x.......x"],.15,"Metalliske detaljer i hullene."]],
+  R:[{t:"Bassen snakker.",s:"Korte stikk som **svarer** trommene.",h:"bass og skarp alene",on:[3],only:[1,3]},
+     {t:"Kromatisk bevegelse.",s:"Bassen går en **halvtone** opp og ned.",h:"se tonehøyden i rutenettet",on:[3],only:[0,3]},
+     {t:"Stramt break.",s:"Skarpen på 2 og 4 er **låst**.",h:"trommene alene",on:[0,1,2],only:[0,1,2]}]},
+ {id:"dubstep",name:"Dubstep",bpm:140,sw:0,tonic:"F",root:43.65,key:"F-moll",mood:"Tung og halv",prog:["Fm","Fm","Db","Eb"],bm:[0,0,7,12],acc:"#b57dff",
+  d:"Skarptrommen ligger på slag 3, så takten føles halvt så rask. Wobblen går i 3 slag og drar mot takten.",
+  L:[["k808",["k808","kick","khard"],"x.........x.....",["x.....x...x.....","x..x......x....."],0,"Tung kick."],
+     ["snare",["snare","clap2","snrim"],"........x.......",[],0,"Skarp bare på slag 3."],
+     ["hat",["hat","hat909","shaker"],"..x...x.",["xxx.xx.x","x.x.x.xx"],.5,"Hihaten holder farten levende."],
+     ["wob",["wob","reese","acid"],"x.....x.x...",["x..x..x.x...","xx....x..x.."],.3,"Wobblen er 3 slag lang."],
+     ["rim",["rim","zap","laser","chirp"],"...x..",["..x...","...x.x"],.2,"Små motrytmer i 1½ slag."]],
+  R:[{t:"Halvtempo.",s:"Skarp bare på **slag 3**. 140 føles som 70.",h:"kick og skarp alene",on:[1],only:[0,1]},
+     {t:"Wobblen er hovedrollen.",s:"Filteret åpnes i **8-deler**.",h:"wobble alene",on:[3],only:[3]},
+     {t:"Pause før droppet.",s:"Stillhet gjør droppet **tyngre**.",h:"alt unntatt hat borte i takt 3 og 4",on:[3],gap:[0,1,3,4]}]},
+ {id:"ukg",name:"UK garage",bpm:132,sw:22,tonic:"G",root:49,key:"G-moll",mood:"London, 1999",prog:["Gm7","Cm7"],bm:[0],acc:"#ffd23f",
+  d:"2-step: kicken hopper over slag 3, masse swing og korte akkordstikk i hullene.",
+  L:[["kick",["kick","k909","k808"],"x.........x..x..",["x......x..x....."],0,"Totrinns kick som hopper over slag 3."],
+     ["snare",["snare","clap","snrim"],"....x.......x...",[],0,"Skarp på 2 og 4."],
+     ["hat",["hat","shaker","hat909"],"..x...x...x...x.",["x.x.x.x.x.x.x.x."],.5,"Hat med mye swing."],
+     ["sub",["sub","reese","octbass"],"x.....x...x.....",["x..x......x..x.."],.3,"Subbassen følger kicken."],
+     ["organ",["organ","stab","chord"],"..x..x.......x..",["...x..x...x....."],.2,"Orgelstikk bryter opp rytmen."]],
+  R:[{t:"Hopp over tre.",s:"Kicken **unngår** slag 3. Det er 2-step.",h:"kick og skarp alene",on:[0],only:[0,1]},
+     {t:"Swing er alt.",s:"Hver andre 16-del **slentrer**.",h:"hat alene",on:[2],only:[2]},
+     {t:"Stikk, ikke flater.",s:"Korte akkorder i **hullene**.",h:"orgel og skarp",on:[4],only:[1,4]}]}
+]},
+{id:"hard",name:"Hard",about:"Forvrengte kicks og høyt tempo.",bg:"#0f0808",c:["#ff4a3d","#ffd6c9","#ff9f1c","#8d99ae","#e5383b","#f6bd60"],subs:[
+ {id:"hardstyle",name:"Hardstyle",bpm:150,sw:0,tonic:"G",root:49,key:"G-moll",mood:"Festival, hovedscenen",prog:["Gm","Eb","Bb","F"],bm:[0],arp:[0,1,2,3,4,3,2,1],acc:"#ff4a3d",
+  d:"Den forvrengte kicken er melodien, revers-bassen sveller mot neste slag og screechen går i 3.",
+  L:[["khard",["khard","kraw","k909"],"x...x...x...x...",[],0,"Forvrengt kick med tone og hale."],
+     ["revbass",["revbass","bass","reese"],".x..",[".x.x","..x."],0,"Revers-bassen sveller opp mot neste kick."],
+     ["clap2",["clap2","clap","snare"],"....x.......x...",[],0,"Bred klapp på 2 og 4."],
+     ["ohat",["ohat","ride","hat909"],"..x.",["..xx"],0,"Åpen hat på offbeat."],
+     ["screech",["screech","hoover","supersaw"],"x..x..x..x..",["x.x...x..x..","x..x.x..x..."],.3,"Screechen er 3 slag lang."],
+     ["laser",["laser","zap","sweep"],"x...............",["x.......x......."],.08,"Laseren markerer frasen."]],
+  R:[{t:"Kicken er melodien.",s:"Forvrengt kick med **tone** og hale.",h:"kicken alene",on:[0],only:[0]},
+     {t:"Revers-bassen suger.",s:"Bassen sveller opp mot **neste** kick.",h:"kick og revers-bass",on:[1],only:[0,1]},
+     {t:"Screech i tre.",s:"Leaden er 3 slag og **drar** mot takten.",h:"screech og kick",on:[4],only:[0,4]}]},
+ {id:"raw",name:"Rawstyle",bpm:152,sw:0,tonic:"F#",root:46.25,key:"F♯-moll",mood:"Mørk og skitten",prog:["F#m"],bm:[0],arp:[0,0,1,0,2,0],acc:"#ff9f1c",
+  d:"Enda mer forvrengning, offbeat-bass og screech som spilles som trommer.",
+  L:[["kraw",["kraw","khard","kgabber"],"x...x...x...x...",[],0,"Rå kick med lang, skitten hale."],
+     ["revbass",["revbass","reese"],"..x.",[".x.."],0,"Offbeat-bass på «og»-en."],
+     ["clap2",["clap2","clap"],"....x.......x...",[],0,"Klapp på 2 og 4."],
+     ["screech",["screech","hoover","laser"],"x.x..x.x..x.x..x",["xx..x.x..xx..x.x"],.4,"Screech i rytmiske stikk."],
+     ["ride",["ride","ohat"],"..x...x...x...x.",[],0,"Ride på offbeat."]],
+  R:[{t:"Skitt i kicken.",s:"Mer forvrengning, **lengre** hale.",h:"kicken alene",on:[0],only:[0]},
+     {t:"Offbeat-trøkk.",s:"Bassen dytter på **«og»-en**.",h:"kick og bass",on:[1],only:[0,1]},
+     {t:"Rytme før melodi.",s:"Screechen er **trommer** med tone.",h:"screech og kick",on:[3],only:[0,3]}]},
+ {id:"gabber",name:"Gabber",bpm:180,sw:0,tonic:"A",root:55,key:"A-moll",mood:"Rotterdam, 1995",prog:["Am"],bm:[0],arp:[0,0,2,1],acc:"#ff2e63",
+  d:"Kicken er forvrengt til den synger, farten er 180 og en hoover skriker over.",
+  L:[["kgabber",["kgabber","kraw","khard"],"x...x...x...x...",[],0,"Forvrengt til den nesten blir en tone."],
+     ["hoover",["hoover","screech","supersaw"],"x.......x.x.....",["x..x..x.........","x...x...x...x..."],.2,"Hoover-lyden er gabberens kjennemerke."],
+     ["ohat",["ohat","ride","hat"],"..x.",[],0,"Åpen hat på offbeat."],
+     ["clap",["clap","snare"],"....x.......x...",["....x..x....x..x"],0,"Klapp på 2 og 4."]],
+  R:[{t:"Kicken er alt.",s:"Så forvrengt at den **synger**.",h:"kicken alene",on:[0],only:[0]},
+     {t:"Hold farten.",s:"180 BPM, **ingen** brems.",h:"kick og hat",on:[0,2],only:[0,2]},
+     {t:"Hoover på toppen.",s:"Én **skrikende** synth holder.",h:"hoover og kick",on:[1],only:[0,1]}]}
+]},
+{id:"retro",name:"Disco og retro",about:"80-tall, synther og diskokule.",bg:"#100a16",c:["#ff5fa2","#f6e7ff","#b28dff","#5ce1e6","#ffb86b","#7a6cff"],subs:[
+ {id:"synthwave",name:"Synthwave",bpm:100,sw:0,tonic:"D",root:73.42,key:"D-moll",mood:"80-talls nattkjøring",prog:["Dm","C","Am","Bb"],bm:[0],arp:[0,1,2,3,4,5],acc:"#ff5fa2",
+  d:"Kick på hvert slag, stor gated skarp på 2 og 4, drivende 8-dels bass, arp og varme pads.",
+  L:[["kick",["kick","k909","kdisco"],"x...x...x...x...",[],0,"Kick på hvert slag."],
+     ["gate",["gate","snare","clap2"],"....x.......x...",[],0,"Stor gated skarp på 2 og 4. Halen kuttes brått."],
+     ["hat",["hat","hat909","shaker"],"xxxx.xxxxxxx.xxx",["x.x.x.x.x.x.x.x.","xxxxxxxxxxxxxxxx"],.7,"16-dels hat."],
+     ["bass",["bass","octbass","sub"],"x.x.x.x.x.x.x.x.",["xxxxxxxxxxxxxxxx","x.xxx.xxx.xxx.xx"],0,"Drivende bass i 8-deler på grunntonen."],
+     ["arp",["arp","pluck","bell","supersaw"],"x.x.x.x.x.x.",["xxxxxx","x.x.x.x.x.x.x.x."],.5,"Arpen klatrer i 8-deler. 6 toner er 3 slag."],
+     ["pad",["pad","chord","organ"],"x...............",[],0,"Varme pads: {prog}."]],
+  R:[{t:"Kick og gated skarp.",s:"Hvert slag, og en stor skarp på **2 og 4**.",h:"kick og skarp alene",on:[0,1],only:[0,1]},
+     {t:"Drivende 8-deler.",s:"16-dels hat og bass i **8-deler**.",h:"hat og bass alene",on:[2,3],only:[2,3]},
+     {t:"Arp og varme pads.",s:"Akkordene går **{prog}**.",h:"arp og pad alene",on:[4,5],only:[4,5]}]},
+ {id:"italo",name:"Italo disco",bpm:120,sw:0,tonic:"A",root:55,key:"A-moll",mood:"Milano, 1984",prog:["Am","F","G","Em"],bm:[0],arp:[0,2,1,3,2,1],acc:"#5ce1e6",
+  d:"Oktavbass i 16-deler, synthmelodi i 3+3+2 og tom-fills mot slutten av takten.",
+  L:[["k909",["k909","kick"],"x...x...x...x...",[],0,"Kick på hvert slag."],
+     ["clap",["clap","snare","gate"],"....x.......x...",[],0,"Klapp på 2 og 4."],
+     ["octbass",["octbass","bass"],"xxxxxxxxxxxxxxxx",["x.x.x.x.x.x.x.x."],0,"Oktavbass i 16-deler."],
+     ["hat",["hat","ohat"],"..x.",[],0,"Hat på offbeat."],
+     ["supersaw",["supersaw","arp","bell","stab"],"x..x..x...x.x...",["x..x..x.x..x..x."],.3,"Synthmelodi i 3+3+2."],
+     ["tom",["tom","laser"],"............x.x.",[],0,"Syntetiske tom-fills."]],
+  R:[{t:"Oktavbassen spretter.",s:"Lav og høy tone i **16-deler**.",h:"bassen alene",on:[2],only:[2]},
+     {t:"3+3+2 i melodien.",s:"Synthen aksentuerer **tresser**.",h:"synth og kick",on:[4],only:[0,4]},
+     {t:"Fills mot slutten.",s:"Tom-fills markerer **slutten** av takten.",h:"tom og kick",on:[5],only:[0,5]}]},
+ {id:"nudisco",name:"Nu disco",bpm:118,sw:18,tonic:"E",root:41.2,key:"E-moll",mood:"Glitterkule og solnedgang",prog:["Em7","Am7","Cmaj7","D"],bm:[0],arp:[0,2,1,3,2,4],acc:"#ffc857",
+  d:"Oktavbassen hopper i 8-deler mens gitaren hakker i 3 slag. Congaen går i 1½.",
+  L:[["kdisco",["kdisco","kick"],"x...x...x...x...",[],0,"Myk kick på hvert slag."],
+     ["octbass",["octbass","bass","sub"],"x.x.x.x.x.x.x.x.",["x..x.xx.x..x.xx.","x.xx..x.x.xx..x."],.4,"Oktavbassen hopper mellom lav og høy tone."],
+     ["clap",["clap","snap","snare"],"....x.......x...",[],0,"Klapp på 2 og 4."],
+     ["tamb",["tamb","ohat","hat"],"..x.",[".xx.","xxxx"],.6,"Tamburin på offbeat."],
+     ["guitar",["guitar","chord","organ","pluck"],".x..x..x....",["..x..x..x...","x..x..x..x..",".x.x..x....x"],.3,"Funkgitaren hakker i 3 slag."],
+     ["conga",["conga","congalo","cowbell","block","clave"],"..x..x",["x..x.x","..xx.x"],.4,"Congaen går i 1½ slag."]],
+  R:[{t:"Bassen hopper oktaver.",s:"Lav, høy, lav, høy i **8-deler**.",h:"bassen alene",on:[1],only:[1]},
+     {t:"Gitaren hakker.",s:"Funkgitar i **3 slag** over takten.",h:"gitar og kick",on:[4],only:[0,4]},
+     {t:"Swing gir liv.",s:"Tamburin og conga **slentrer**.",h:"perkusjonen alene",on:[3,5],only:[3,5]}]},
+ {id:"electro",name:"Electro",bpm:128,sw:0,tonic:"E",root:41.2,key:"E-moll",mood:"Robotene danser",prog:["Em"],bm:[0,0,12,0,7,0],acc:"#b28dff",
+  d:"808-kick i synkoper, maskinpresise 8-deler og 808-perkusjon.",
+  L:[["k808",["k808","kick"],"x.....x...x.....",["x..x......x..x..","x.....x.x......."],.2,"808-kick i synkoper, ikke rett firer."],
+     ["clap",["clap","snare"],"....x.......x...",[],0,"Klapp på 2 og 4."],
+     ["hat909",["hat909","hat"],"x.x.x.x.x.x.x.x.",["xxxxxxxxxxxxxxxx"],.6,"Hat i 8-deler uten swing."],
+     ["cowbell",["cowbell","clave","rim"],"..x..x....x..x..",[],.25,"808-kubjelle og clave."],
+     ["acid",["acid","bass","octbass"],"x..x..x...x.x...",[],.4,"Robotisk bassline."],
+     ["laser",["laser","zap","chirp"],"......x.......x.",[],.1,"Laser-effekter."]],
+  R:[{t:"Kicken synkoperer.",s:"808-kicken unngår **rett** firer.",h:"kick og klapp alene",on:[0],only:[0,1]},
+     {t:"Maskinen spiller.",s:"Hat i **8-deler**, helt uten swing.",h:"hat alene",on:[2],only:[2]},
+     {t:"Kubjelle og laser.",s:"808-lyder gir **robot**-preget.",h:"perkusjon og effekter",on:[3,5],only:[3,5]}]}
+]}];
+const GENRES={};
+FAMILIES.forEach(f=>f.subs.forEach(s=>{s.fam=f;s.c=[s.acc,...f.c.filter(c=>c!==s.acc)].slice(0,6);GENRES[s.id]=s}));
+const G=()=>GENRES[state.genre];
+
+/* chords */
+const PCS={C:0,"C#":1,Db:1,D:2,"D#":3,Eb:3,E:4,F:5,"F#":6,Gb:6,G:7,"G#":8,Ab:8,A:9,"A#":10,Bb:10,B:11};
+const QUAL={"":[0,4,7],m:[0,3,7],m7:[0,3,7,10],maj7:[0,4,7,11],"7":[0,4,7,10],m9:[0,3,7,10,14],sus2:[0,2,7]};
+const pretty=n=>n.replace(/^([A-G])b/,"$1♭").replace(/^([A-G])#/,"$1♯");
+function chordsOf(gen){
+  if(!gen._ch)gen._ch=gen.prog.map(n=>{const m=n.match(/^([A-G][b#]?)(.*)$/);let d=(PCS[m[1]]-PCS[gen.tonic]+12)%12;if(d>6)d-=12;return{name:pretty(n),r:d,q:QUAL[m[2]]||QUAL[""]}});
+  return gen._ch;
+}
+const chordAt=g=>{const c=chordsOf(G());return c[Math.floor(g/16)%c.length]};
+const progTxt=()=>chordsOf(G()).map(c=>c.name).join(" – ");
+
+let state;
+const P=s=>s.split("").map(c=>c==="x"?1:0);
+const pad32=a=>{const s=a.slice(0,32);while(s.length<32)s.push(0);return s};
+function loadGenre(key){
+  const g=GENRES[key];
+  state={genre:key,mod:false,bpm:g.bpm,swing:g.sw,
+    layers:g.L.map((d,i)=>({sound:d[0],len:d[2].length,steps:pad32(P(d[2])),mute:false,gi:i,color:g.c[i%6]}))};
+}
+try{const s=JSON.parse(localStorage.getItem("pendelgroove-v4"));if(s&&s.layers&&GENRES[s.genre])state=s}catch(e){}
+if(!state)loadGenre("hypno");
+let view="pend";try{view=localStorage.getItem("pendelgroove-view")||"pend"}catch(e){}
+function save(){try{localStorage.setItem("pendelgroove-v4",JSON.stringify(state))}catch(e){}}
+
+const gcd=(a,b)=>b?gcd(b,a%b):a, lcm=(a,b)=>a/gcd(a,b)*b;
+const cycleSteps=()=>state.layers.reduce((a,l)=>lcm(a,l.len),16);
+function beats(n){const b=n/4;return Number.isInteger(b)?String(b):(Math.round(b*100)/100).toString().replace(".",",")}
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const def=l=>l.gi!=null?G().L[l.gi]:null;
+function poolOf(l){const d=def(l);return d?d[1]:Object.keys(SOUNDS).filter(k=>roleOf(k)===roleOf(l.sound))}
+
+function regen(l){
+  const d=def(l);
+  if(d){
+    const tpl=[d[2],...d[3]];
+    if(d[4]&&Math.random()<.35){randomize(l,pick(tpl).length,d[4]);return}
+    let p=pick(tpl);if(tpl.length>1){let k=0;while(p.length===l.len&&P(p).every((v,i)=>v===l.steps[i])&&k++<8)p=pick(tpl)}
+    l.len=p.length;l.steps=pad32(P(p));
+  }else randomize(l,l.len,ROLE_DENS[roleOf(l.sound)]||.3);
+}
+function randomize(l,len,dens){
+  l.len=len;for(let s=0;s<32;s++)l.steps[s]=Math.random()<dens?1:0;
+  if(roleOf(l.sound)==="kick")l.steps[0]=1;
+  if(!l.steps.slice(0,len).some(Boolean))l.steps[Math.floor(Math.random()*len)]=1;
+}
+
+/* deterministic note logic, shared by sound and grid */
+function hitIndex(l,g){let H=0,pre=0;const r=g%l.len;for(let s=0;s<l.len;s++)if(l.steps[s]){if(s<r)pre++;H++}return Math.floor(g/l.len)*H+pre}
+function gapSteps(l,g){for(let k=1;k<=l.len;k++)if(l.steps[(g+k)%l.len])return k;return l.len}
+function bassSemi(l,g){const gen=G(),bm=gen.bm||[0],n=hitIndex(l,g);return chordAt(g).r+bm[n%bm.length]+(l.sound==="octbass"&&n%2?12:0)}
+function leadSemi(l,g){const gen=G(),ch=chordAt(g),tones=gen.tones||[...ch.q,...ch.q.map(v=>v+12)],seq=gen.arp||[0,1,2,3,2,1],n=hitIndex(l,g);return ch.r+tones[seq[n%seq.length]%tones.length]}
+function noteSemi(l,g){const r=roleOf(l.sound);if(r==="bass")return bassSemi(l,g);if(r==="lead")return CHORDAL.has(l.sound)?chordAt(g).r:leadSemi(l,g);return null}
+
+/* rhythm in words */
+function rhythmText(l){
+  const h=[];for(let s=0;s<l.len;s++)if(l.steps[s])h.push(s);
+  const eq=a=>a.length===h.length&&a.every((v,i)=>v===h[i]);
+  if(!h.length)return"stille";
+  if(l.len===16){
+    if(eq([0,4,8,12]))return"hvert slag";
+    if(eq([4,12]))return"på 2 og 4";
+    if(eq([8]))return"på 3, halvtempo";
+    if(eq([2,6,10,14]))return"offbeat";
+    if(h.length===16)return"16-deler";
+    if(eq([0,2,4,6,8,10,12,14]))return"8-deler";
+    if(eq([0]))return"én gang per takt";
+    return h.length+" treff per takt";
+  }
+  if(l.len===4){if(eq([2]))return"offbeat";if(h.length===4)return"16-deler";if(eq([0,2]))return"8-deler";if(eq([1,2,3]))return"3 etter hver kick";if(eq([0]))return"hvert slag";return"gjentas hvert slag"}
+  if(l.len===2){if(eq([0]))return"8-deler";if(h.length===2)return"16-deler";return"offbeat-16-deler"}
+  if(l.len===8)return"gjentas hver halve takt";
+  if(l.len===32)return"gjentas hver 2. takt";
+  return 16%l.len?`${beats(l.len)} slag, forskyves`:`gjentas hvert ${beats(l.len)}. slag`;
+}
+
+/* ================= lessons ================= */
+let lesson=null; // {kind:'rules'|'build', i, start}
+function md(s){return s.replace(/\{prog\}/g,progTxt()).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>")}
+function lessonSteps(){
+  const g=G();
+  if(lesson&&lesson.kind==="rules")return g.R;
+  const st=g.L.map((d,gi)=>{const l=state.layers.find(x=>x.gi===gi);const nm=l?nameOf(l.sound):nameOf(d[0]);
+    return{on:[gi],t:`**${nm}** · ${l?rhythmText(l):""}. ${d[5]||""}`}});
+  st.push({on:null,final:true,t:autoFinal()});return st;
+}
+function autoFinal(){
+  const odd=state.layers.filter(l=>16%l.len&&!l.mute),bars=cycleSteps()/16;
+  if(odd.length){
+    const parts=[...new Map(odd.map(l=>[l.len,l])).values()].map(l=>`${nameOf(l.sound).toLowerCase()} i ${beats(l.len)}`);
+    return`**Alt sammen.** ${parts.join(" og ")} slag mot kickens 4. Derfor møtes alt hver **${bars}. takt**, og to takter på rad låter aldri helt likt.`;
+  }
+  return chordsOf(G()).length>1?`**Alt sammen.** Rytmen gjentas hver takt mens akkordene går ${progTxt()}.`:`**Alt sammen.** Alt går opp i én takt. Det er repetisjonen som gjør det hypnotisk.`;
+}
+function stepNow(){if(!lesson)return null;const st=lessonSteps();return st[Math.min(lesson.i,st.length-1)]}
+function relBar(s){return lesson?Math.max(0,Math.floor((s-lesson.start)/16)):0}
+function playsAt(i,s){
+  if(!lesson)return true;
+  const st=stepNow(),gi=state.layers[i].gi;
+  if(!st||st.final)return true;
+  if(lesson.kind==="build"){if(gi==null)return false;const all=lessonSteps();for(let k=0;k<=lesson.i;k++)if(all[k].on&&all[k].on.includes(gi))return true;return false}
+  const rb=relBar(s)%4;
+  if(st.only&&!st.only.includes(gi))return false;
+  if(st.late&&st.late.includes(gi)&&rb<2)return false;
+  if(st.gap&&st.gap.includes(gi)&&rb>=2)return false;
+  return true;
+}
+function isFocus(i){const st=stepNow();if(!st||st.final||!st.on)return true;return st.on.includes(state.layers[i].gi)}
+
+/* ================= audio engine ================= */
+let ac,master,noise,curve,curve2;
+function initAudio(){
+  if(ac)return;
+  ac=new (window.AudioContext||window.webkitAudioContext)();
+  const comp=ac.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=4;comp.attack.value=.003;
+  master=ac.createGain();master.gain.value=.75;master.connect(comp);comp.connect(ac.destination);
+  noise=ac.createBuffer(1,ac.sampleRate,ac.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  curve=new Float32Array(1024);curve2=new Float32Array(1024);
+  for(let i=0;i<1024;i++){const x=i/512-1;curve[i]=Math.tanh(x*8);curve2[i]=Math.sign(x)*Math.min(1,Math.abs(x)*40)}
+}
+const env=(g,t,p,d)=>{g.gain.setValueAtTime(p,t);g.gain.exponentialRampToValueAtTime(.0001,t+d)};
+function osc(type,f,t,dur,dest){const o=ac.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t);o.connect(dest);o.start(t);o.stop(t+dur+.02);return o}
+function nz(t,dur,dest){const s=ac.createBufferSource();s.buffer=noise;s.connect(dest);s.start(t);s.stop(t+dur+.02);return s}
+function filt(type,f,q,dest){const x=ac.createBiquadFilter();x.type=type;x.frequency.value=f;if(q)x.Q.value=q;x.connect(dest);return x}
+function dist(dest,hard){const w=ac.createWaveShaper();w.curve=hard?curve2:curve;w.connect(dest);return w}
+function sub(dest,v){const g=ac.createGain();g.gain.value=v;g.connect(dest);return g}
+function metal(t,dur,dest){[2,3,4.16,5.43,6.79,8.21].forEach(r=>osc("square",330*r,t,dur,dest))}
+function clapF(t,g,n,f,dec,p){nz(t,dec+n*.011,filt("bandpass",f,1.1,g));g.gain.setValueAtTime(0,t);
+  for(let k=0;k<n;k++){g.gain.setValueAtTime(p,t+k*.011);g.gain.exponentialRampToValueAtTime(.06,t+k*.011+.009)}
+  const e=t+n*.011;g.gain.setValueAtTime(p,e);g.gain.exponentialRampToValueAtTime(.0001,e+dec)}
+const semis=s=>2**(s/12);
+
+const V={
+  kick(t,g){const o=osc("sine",165,t,.42,g);o.frequency.exponentialRampToValueAtTime(42,t+.12);env(g,t,1,.4)},
+  k909(t,g){const o=osc("sine",230,t,.32,g);o.frequency.exponentialRampToValueAtTime(48,t+.06);env(g,t,1,.3);
+    const c=sub(master,1);nz(t,.02,filt("highpass",3000,0,c));env(c,t,.3,.015)},
+  k808(t,g){const o=osc("sine",120,t,.9,g);o.frequency.exponentialRampToValueAtTime(44,t+.08);env(g,t,1,.85)},
+  kpsy(t,g){const o=osc("sine",190,t,.2,g);o.frequency.exponentialRampToValueAtTime(52,t+.045);env(g,t,1,.17)},
+  kdist(t,g){const o=osc("sine",210,t,.34,dist(sub(g,.7)));o.frequency.exponentialRampToValueAtTime(48,t+.07);env(g,t,.75,.32)},
+  khard(t,g){const o=osc("sine",220,t,.5,dist(sub(g,.9)));o.frequency.exponentialRampToValueAtTime(54,t+.08);o.frequency.linearRampToValueAtTime(45,t+.45);env(g,t,.5,.46)},
+  kraw(t,g){const f=filt("lowpass",2600,1,g),o=osc("sine",240,t,.62,dist(sub(f,1),true));o.frequency.exponentialRampToValueAtTime(56,t+.07);o.frequency.linearRampToValueAtTime(40,t+.58);
+    nz(t,.04,filt("highpass",2000,0,sub(g,.2)));env(g,t,.38,.6)},
+  kgabber(t,g){const f=filt("lowpass",3200,2,g),o=osc("sine",260,t,.4,dist(dist(sub(f,1)),true));o.frequency.exponentialRampToValueAtTime(64,t+.05);env(g,t,.36,.38)},
+  kdisco(t,g){const f=filt("lowpass",900,0,g);const o=osc("sine",115,t,.32,f);o.frequency.exponentialRampToValueAtTime(52,t+.1);osc("triangle",62,t,.12,sub(f,.4));env(g,t,.95,.3)},
+  clap(t,g){clapF(t,g,3,1250,.2,.7)},
+  clap2(t,g){clapF(t,g,4,1000,.36,.6)},
+  snare(t,g){nz(t,.2,filt("bandpass",1900,.9,g));const o=osc("triangle",190,t,.12,g);o.frequency.exponentialRampToValueAtTime(140,t+.1);env(g,t,.7,.18)},
+  gate(t,g){nz(t,.34,filt("bandpass",1700,.5,g));const o=osc("triangle",185,t,.1,sub(g,.8));o.frequency.exponentialRampToValueAtTime(130,t+.08);
+    g.gain.setValueAtTime(.65,t);g.gain.exponentialRampToValueAtTime(.32,t+.3);g.gain.linearRampToValueAtTime(.0001,t+.325)},
+  snrim(t,g){nz(t,.09,filt("bandpass",3200,1.4,g));osc("triangle",330,t,.05,sub(g,.6));env(g,t,.6,.08)},
+  snap(t,g){nz(t,.05,filt("bandpass",2300,3,g));osc("sine",1600,t,.02,sub(g,.4));env(g,t,.7,.04)},
+  hat(t,g){nz(t,.07,filt("highpass",8000,0,g));env(g,t,.28,.05)},
+  hat909(t,g){metal(t,.08,filt("highpass",7500,0,g));env(g,t,.12,.06)},
+  ohat(t,g){nz(t,.3,filt("highpass",7000,0,g));env(g,t,.22,.26)},
+  ride(t,g){const f=filt("highpass",5000,0,g);metal(t,.6,filt("bandpass",9000,.6,f));env(g,t,.09,.55)},
+  shaker(t,g){nz(t,.12,filt("bandpass",3200,2,g));env(g,t,.45,.09)},
+  tamb(t,g){nz(t,.18,filt("highpass",6000,0,g));metal(t,.15,filt("highpass",9000,0,sub(g,.25)));g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.32,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+.15)},
+  rim(t,g){osc("triangle",820,t,.06,g);env(g,t,.45,.05)},
+  tom(t,g){const o=osc("sine",240,t,.24,g);o.frequency.exponentialRampToValueAtTime(150,t+.15);env(g,t,.6,.22)},
+  conga(t,g){const o=osc("sine",400,t,.2,g);o.frequency.exponentialRampToValueAtTime(330,t+.04);env(g,t,.5,.18)},
+  congalo(t,g){const o=osc("sine",270,t,.25,g);o.frequency.exponentialRampToValueAtTime(220,t+.05);env(g,t,.55,.22)},
+  cowbell(t,g){const f=filt("bandpass",2600,3,g);osc("square",540,t,.2,f);osc("square",800,t,.2,f);env(g,t,.35,.18)},
+  clave(t,g){osc("sine",2500,t,.04,g);env(g,t,.4,.035)},
+  block(t,g){const o=osc("triangle",1250,t,.07,g);o.frequency.exponentialRampToValueAtTime(980,t+.05);env(g,t,.45,.06)},
+  bass(t,g,x){const f=filt("lowpass",900,8,g);f.frequency.setValueAtTime(900,t);f.frequency.exponentialRampToValueAtTime(120,t+.16);osc("sawtooth",x.b(),t,.24,f);env(g,t,.5,.2)},
+  sub(t,g,x){osc("sine",x.b(),t,x.sd*1.8,g);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.7,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+x.sd*1.8)},
+  rumble(t,g,x){const fr=x.b(),f=filt("lowpass",170,1,g);osc("sine",fr,t,.32,f);osc("triangle",fr*1.01,t,.32,sub(f,.5));nz(t,.26,filt("lowpass",260,0,sub(g,.25)));
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.6,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.3)},
+  reese(t,g,x){const fr=x.b(),d=x.sd*2.6,f=filt("lowpass",520,2,g);osc("sawtooth",fr*.993,t,d,f);osc("sawtooth",fr*1.007,t,d,f);g.gain.setValueAtTime(.38,t);g.gain.setValueAtTime(.38,t+d*.75);g.gain.exponentialRampToValueAtTime(.0001,t+d)},
+  psybass(t,g,x){const f=filt("lowpass",2200,4,g);f.frequency.setValueAtTime(2400,t);f.frequency.exponentialRampToValueAtTime(180,t+.07);osc("sawtooth",x.b(),t,.1,f);env(g,t,.55,.09)},
+  acid(t,g,x){const top=x.n%3===0?3400:900+(x.n*7%5)*220;const f=filt("lowpass",top,18,g);f.frequency.setValueAtTime(top,t);f.frequency.exponentialRampToValueAtTime(160,t+.16);osc("sawtooth",x.b()*2,t,.18,f);env(g,t,x.n%3===0?.4:.3,.17)},
+  octbass(t,g,x){const fr=x.b(),f=filt("lowpass",1300,3,g);f.frequency.setValueAtTime(1500,t);f.frequency.exponentialRampToValueAtTime(260,t+.12);osc("sawtooth",fr,t,.16,f);osc("square",fr,t,.16,sub(f,.4));env(g,t,.4,.15)},
+  wob(t,g,x){const d=x.sd*3,fr=x.b(),f=filt("lowpass",420,10,g),lg=sub(f.frequency,380);osc("sine",1/x.sd,t,d,lg);osc("sawtooth",fr,t,d,f);osc("square",fr*1.01,t,d,f);g.gain.setValueAtTime(.42,t);g.gain.setValueAtTime(.42,t+d*.8);g.gain.exponentialRampToValueAtTime(.0001,t+d)},
+  revbass(t,g,x){const d=x.sd*2.7,fr=x.b()*2,f=filt("lowpass",600,6,g);f.frequency.setValueAtTime(400,t);f.frequency.exponentialRampToValueAtTime(2600,t+d);
+    osc("sawtooth",fr,t,d,dist(sub(f,.5)));g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.4,t+d*.95);g.gain.setValueAtTime(.0001,t+d)},
+  arp(t,g,x){osc("square",x.l(),t,.16,filt("lowpass",2600,2,g));env(g,t,.15,.14)},
+  pluck(t,g,x){const fr=x.l(),f=filt("lowpass",3200,4,g);f.frequency.setValueAtTime(3500,t);f.frequency.exponentialRampToValueAtTime(380,t+.18);osc("sawtooth",fr,t,.22,f);osc("triangle",fr*2,t,.22,sub(f,.4));env(g,t,.17,.21)},
+  stab(t,g,x){const fr=x.cf(4),f=filt("lowpass",2000,3,g);f.frequency.setValueAtTime(2200,t);f.frequency.exponentialRampToValueAtTime(500,t+.2);
+    x.ch.q.slice(0,4).forEach(c=>{osc("sawtooth",fr*semis(c),t,.26,f);osc("sawtooth",fr*semis(c)*1.006,t,.26,f)});env(g,t,.1,.24)},
+  organ(t,g,x){const fr=x.cf(4);x.ch.q.forEach(c=>{const h=fr*semis(c);osc("sine",h,t,.3,g);osc("sine",h*2,t,.3,sub(g,.5));osc("sine",h*3,t,.15,sub(g,.2))});env(g,t,.06,.28)},
+  chord(t,g,x){const fr=x.cf(4),d=Math.min(x.gap,6)*x.sd+.2,f=filt("lowpass",2800,0,g);x.ch.q.forEach(c=>{osc("sawtooth",fr*semis(c),t,d,f);osc("sawtooth",fr*semis(c)*1.004,t,d,f)});
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.045,t+.04);g.gain.setValueAtTime(.045,t+d*.6);g.gain.exponentialRampToValueAtTime(.0001,t+d)},
+  pad(t,g,x){const fr=x.cf(G().root<60?4:2),d=Math.min(x.gap,16)*x.sd,f=filt("lowpass",1500,1,g);x.ch.q.forEach(c=>{osc("sawtooth",fr*semis(c)*.997,t,d+.4,f);osc("sawtooth",fr*semis(c)*1.003,t,d+.4,f)});
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.04,t+.25);g.gain.setValueAtTime(.04,t+d);g.gain.exponentialRampToValueAtTime(.0001,t+d+.4)},
+  supersaw(t,g,x){const fr=x.l(),f=filt("lowpass",3600,1,g);[-.02,-.008,0,.008,.02].forEach(k=>osc("sawtooth",fr*(1+k),t,.3,f));env(g,t,.075,.28)},
+  hoover(t,g,x){const fr=x.l()/2,f=filt("lowpass",2400,1,g);[.99,1,1.012].forEach(k=>{const o=osc("sawtooth",fr*1.5*k,t,.4,f);o.frequency.exponentialRampToValueAtTime(fr*k,t+.09)});env(g,t,.14,.38)},
+  screech(t,g,x){const fr=x.l()*2,f=filt("bandpass",2200,1.5,g),o=osc("square",fr,t,.32,dist(sub(f,.3))),lfo=sub(o.frequency,fr*.06);osc("sine",13,t,.32,lfo);env(g,t,.22,.3)},
+  guitar(t,g,x){const fr=x.cf(4),f=filt("bandpass",1400,1.2,g);[0,7,12].forEach(c=>osc("sawtooth",fr*semis(c),t,.09,f));nz(t,.02,filt("highpass",3000,0,sub(g,.15)));env(g,t,.28,.08)},
+  psylead(t,g,x){const fr=x.l()*2,f=filt("lowpass",1800,12,g),lg=sub(f.frequency,1500);osc("sine",18,t,.2,lg);osc("sawtooth",fr,t,.2,f);env(g,t,.16,.18)},
+  bell(t,g,x){const fr=x.l()*2;osc("sine",fr,t,.7,g);osc("sine",fr*3.5,t,.25,sub(g,.25));env(g,t,.13,.65)},
+  zap(t,g){const o=osc("sine",2400,t,.14,g);o.frequency.exponentialRampToValueAtTime(80,t+.12);env(g,t,.28,.13)},
+  laser(t,g){const o=osc("square",1800,t,.18,filt("lowpass",3000,0,g));o.frequency.exponentialRampToValueAtTime(180,t+.16);env(g,t,.1,.17)},
+  sweep(t,g,x){const d=x.sd*4,f=filt("bandpass",400,6,g);f.frequency.setValueAtTime(400,t);f.frequency.exponentialRampToValueAtTime(7000,t+d);nz(t,d,f);
+    g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.35,t+d*.9);g.gain.exponentialRampToValueAtTime(.0001,t+d)},
+  chirp(t,g){const o=osc("sine",600,t,.07,g);o.frequency.exponentialRampToValueAtTime(1900,t+.05);env(g,t,.16,.06)}
+};
+function voice(l,t,s){
+  const gen=G(),gn=ac.createGain();gn.connect(master);const ch=chordAt(s);
+  const x={sd:stepDur(),ch,n:hitIndex(l,s),gap:gapSteps(l,s),
+    b:()=>gen.root*semis(bassSemi(l,s)-(l.sound==="octbass"?0:0)),
+    l:()=>gen.root*4*semis(leadSemi(l,s)),
+    cf:m=>gen.root*m*semis(ch.r)};
+  (V[l.sound]||V.rim)(t,gn,x);
+}
+let playing=false,nextTime=0,stepIdx=0,timer=null,queue=[],pos=0,last=null,wake=null;
+const stepDur=()=>60/state.bpm/4;
+function scheduler(){
+  while(nextTime<ac.currentTime+.12){
+    const t=nextTime+(stepIdx%2?state.swing/100*stepDur():0);
+    state.layers.forEach((l,i)=>{if(!l.mute&&l.steps[stepIdx%l.len]&&playsAt(i,stepIdx))voice(l,t,stepIdx)});
+    queue.push({t,s:stepIdx});
+    nextTime+=stepDur();stepIdx++;
+  }
+}
+function setPlaying(on){
+  initAudio();if(ac.state==="suspended")ac.resume();
+  playing=on;
+  if(on){stepIdx=0;queue=[];last=null;if(lesson)lesson.start=0;nextTime=ac.currentTime+.06;scheduler();timer=setInterval(scheduler,25);
+    try{navigator.wakeLock&&navigator.wakeLock.request("screen").then(w=>wake=w).catch(()=>{})}catch(e){}}
+  else{clearInterval(timer);queue=[];pos=0;last=null;flashes=flashes.map(()=>0);try{wake&&wake.release()}catch(e){};wake=null;applyFocus()}
+  $("play").classList.toggle("on",on);
+  $("playIcon").innerHTML=on?'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>':'<path d="M7 4l13 8-13 8z"/>';
+  $("play").setAttribute("aria-label",on?"Stopp":"Spill av");
+}
+function preview(l){if(playing)return;initAudio();if(ac.state==="suspended")ac.resume();voice(l,ac.currentTime+.01,0)}
+
+/* ================= UI ================= */
+const $=id=>document.getElementById(id);
+const ICON={
+  mute:'<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l4 6M21 9l-4 6"/></svg>',
+  sound:'<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 8a5 5 0 0 1 0 8"/></svg>',
+  swap:'<svg viewBox="0 0 24 24"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg>',
+  dice:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="15" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/><circle cx="9" cy="15" r="1" fill="currentColor"/></svg>',
+  del:'<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  close:'<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+};
+function applyTheme(){
+  const g=G(),r=document.documentElement.style;r.setProperty("--accent",g.acc);r.setProperty("--bg",g.fam.bg);
+  const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=g.fam.bg;
+}
+function renderTop(){
+  const g=G();$("pkFam").textContent=g.fam.name.toUpperCase();$("pkSub").textContent=g.name;
+  $("subs").innerHTML=g.fam.subs.map(s=>{const on=s.id===state.genre;
+    return`<button class="sub" style="--gc:${s.acc}" data-g="${s.id}" aria-pressed="${on}" data-mod="${on&&state.mod}" title="${on&&state.mod?"Trykk igjen for å tilbakestille":s.mood}"><i></i><b>${s.name}</b><small>${s.bpm} BPM</small></button>`}).join("");
+}
+$("subs").onclick=e=>{const b=e.target.closest(".sub");if(!b)return;chooseGenre(b.dataset.g);b.scrollIntoView({inline:"nearest",block:"nearest"})};
+function chooseGenre(id){loadGenre(id);if(lesson){lesson.i=0;lesson.start=playing&&last?Math.ceil(stepIdx/16)*16:0}syncAll()}
+
+/* sheet */
+let sheetReturn=null;
+function openSheet(html){sheetReturn=document.activeElement;$("sheetIn").innerHTML=html;$("sheet").hidden=false;const c=$("sheetIn").querySelector(".close");c&&c.focus()}
+function closeSheet(){$("sheet").hidden=true;sheetReturn&&sheetReturn.focus&&sheetReturn.focus()}
+$("sheet").addEventListener("click",e=>{if(e.target.id==="sheet"||e.target.closest(".close"))closeSheet();const t=e.target.closest(".tile");if(t){chooseGenre(t.dataset.g);closeSheet()}});
+addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden)closeSheet()});
+$("picker").onclick=()=>{
+  const total=Object.keys(GENRES).length;
+  openSheet(`<div class="sheet-h"><div><h2 id="sheetT">Velg sjanger</h2><p>${FAMILIES.length} familier, ${total} undersjangre. Hver har 3 regler du kan høre.</p></div><button class="close" aria-label="Lukk">${ICON.close}</button></div>`+
+  FAMILIES.map(f=>{const b=f.subs.map(s=>s.bpm);return`<section class="fam" style="--fc:${f.c[0]}"><div class="famh"><h3>${f.name}</h3><span>${f.about}</span><small>${Math.min(...b)}–${Math.max(...b)} BPM</small></div><div class="tiles">`+
+    f.subs.map(s=>`<button class="tile" style="--tc:${s.acc}" data-g="${s.id}" aria-current="${s.id===state.genre}"><span class="nm"><i></i>${s.name}</span><small>${s.bpm} BPM · ${s.key}</small><span>${s.mood}</span></button>`).join("")+`</div></section>`}).join(""));
+};
+$("help").onclick=()=>{
+  const T=[["Slag","Ett tellslag. Fire slag er én takt i 4/4."],["16-del","En fjerdedel av et slag. Én rute i rutenettet."],["8-del","Et halvt slag, altså to ruter."],
+    ["Four on the floor","Kick på hvert slag. Grunnlaget i house, techno og trance."],["Offbeat","Midt mellom to slag, «og»-en. Typisk plass for åpen hat og bass."],
+    ["Backbeat","Skarp eller klapp på slag 2 og 4."],["Halvtempo","Skarp bare på slag 3, så takten føles halvt så rask."],
+    ["2-step","Kicken hopper over slag 3, typisk UK garage."],["Polyrytme","To mønstre med ulik lengde samtidig. 3 og 4 møtes etter 12 slag, altså hver 3. takt."],
+    ["Swing","Hver andre 16-del kommer litt for sent. Gir et menneskelig drag."],["Akkordprogresjon","Rekkefølgen på akkordene, her én per takt."],
+    ["Arpeggio","Akkordens toner spilt én og én."],["Frygisk","Moll-skala med en liten sekund over grunntonen. Mørk og orientalsk."],
+    ["Gated reverb","Romklang som kuttes brått. Lyden fra 80-tallet."],["Rumle","Lav, ullen bass etter kicken i techno. Fyller rommet."],
+    ["303 / acid","En bassynth med resonansfilter som piper og hviner."],["Pendelen","Lengden følger fysikken. Et mønster som er dobbelt så langt gir en pendel som er fire ganger så lang."]];
+  openSheet(`<div class="sheet-h"><div><h2 id="sheetT">Ordliste</h2><p>Begrepene som brukes i forklaringene.</p></div><button class="close" aria-label="Lukk">${ICON.close}</button></div>
+  <dl class="gl">${T.map(([a,b])=>`<div><dt>${a}</dt><dd>${b}</dd></div>`).join("")}</dl>
+  <h4>Slik bruker du det</h4><ul class="howto">
+  <li><b>3 regler</b> spiller en demo per regel. Lagene som ikke hører til regelen blir stille eller kommer inn senere.</li>
+  <li><b>Bygg opp</b> legger til ett lag om gangen med forklaring.</li>
+  <li><b>Rutenett</b> viser én takt om gangen. Markørene viser hvor mønstre som ikke går opp i takten starter på nytt.</li>
+  <li><b>Dra fingeren</b> over rutene for å male inn eller fjerne slag.</li>
+  <li><b>Pilene</b> bytter lyd innen sjangeren. <b>Terningen</b> gir nytt mønster. <b>Ny variant</b> gjør begge deler for hele låta.</li>
+  <li><b>Trykk på en pendel</b> eller et lagnavn i rutenettet for å dempe laget.</li></ul>`);
+};
+
+function soundOptions(sel,pool){
+  return Object.entries(ROLES).map(([r,rn])=>{
+    const ks=Object.keys(SOUNDS).filter(k=>SOUNDS[k][1]===r);
+    return`<optgroup label="${rn}">${ks.map(k=>`<option value="${k}"${k===sel?" selected":""}>${SOUNDS[k][0]}</option>`).join("")}</optgroup>`}).join("");
+}
+function renderRack(){
+  let h="";
+  state.layers.forEach((l,i)=>{
+    const cols=Math.min(l.len,16);let pads="";
+    for(let s=0;s<l.len;s++){const c=s%cols;pads+=`<button class="pad${l.steps[s]?" on":""}${s%4===0?" b":""}${s%4===0&&c!==0?" g":""}" data-l="${i}" data-s="${s}" aria-label="Lag ${i+1}, trinn ${s+1}"></button>`}
+    h+=`<div class="layer${l.mute?" muted":""}" id="layer${i}" style="--c:${l.color}">
+      <div class="lhead"><span class="sw"></span>
+        <select data-l="${i}" aria-label="Lyd for lag ${i+1}">${soundOptions(l.sound,poolOf(l))}</select>
+        <div class="len"><button data-a="dec" data-l="${i}" aria-label="Kortere">−</button><span><b>${l.len}</b><small>${beats(l.len)} slag</small></span><button data-a="inc" data-l="${i}" aria-label="Lengre">+</button></div>
+        <span class="sp"></span>
+        <button class="ic" data-a="mute" data-l="${i}" aria-pressed="${l.mute}" aria-label="Demp">${l.mute?ICON.mute:ICON.sound}</button>
+        <button class="ic" data-a="swap" data-l="${i}" aria-label="Neste lyd i sjangeren">${ICON.swap}</button>
+        <button class="ic" data-a="dice" data-l="${i}" aria-label="Nytt mønster">${ICON.dice}</button>
+        ${state.layers.length>1?`<button class="ic" data-a="del" data-l="${i}" aria-label="Fjern lag">${ICON.del}</button>`:""}
+      </div>
+      <div class="pads" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">${pads}</div></div>`;
+  });
+  h+=`<button class="add" data-a="add"${state.layers.length>=6?" hidden":""}>+ Legg til lag</button>`;
+  $("rack").innerHTML=h;padEls=[...$("rack").querySelectorAll(".pads")].map(p=>[...p.children]);nowIdx=[];applyFocus();
+}
+function applyFocus(){
+  const s=playing&&last?last.s:(lesson?lesson.start:0);
+  state.layers.forEach((l,i)=>{const el=$("layer"+i);if(!el)return;
+    const off=lesson&&!playsAt(i,s),foc=lesson&&isFocus(i)&&!stepNow().final;
+    el.classList.toggle("off",!!off);el.classList.toggle("dim",!!lesson&&!off&&!isFocus(i));el.classList.toggle("focus",!!foc)});
+}
+function flashLayer(i){const el=$("layer"+i);if(el){el.classList.remove("flash");void el.offsetWidth;el.classList.add("flash")}}
+let padEls=[],nowIdx=[];
+$("rack").addEventListener("change",e=>{if(e.target.tagName==="SELECT"){const i=+e.target.dataset.l,l=state.layers[i];l.sound=e.target.value;preview(l);changed()}});
+$("rack").addEventListener("click",e=>{
+  const b=e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a,i=+b.dataset.l,l=state.layers[i];
+  if(a==="dec"&&l.len>2)l.len--;
+  else if(a==="inc"&&l.len<32)l.len++;
+  else if(a==="mute")l.mute=!l.mute;
+  else if(a==="del")state.layers.splice(i,1);
+  else if(a==="swap"){const pool=poolOf(l);l.sound=pool[(pool.indexOf(l.sound)+1)%pool.length];preview(l)}
+  else if(a==="dice")regen(l);
+  else if(a==="add"){if(state.layers.length>=6)return;const used=state.layers.map(x=>x.color),pal=G().c;
+    const nl={sound:pick(["rim","conga","clave","block","chirp","bell"]),len:12,steps:pad32([]),mute:false,gi:null,color:pal.find(c=>!used.includes(c))||pal[0]};
+    randomize(nl,pick([6,10,12,20]),.3);state.layers.push(nl)}
+  else return;
+  changed(true);if(a==="dice"||a==="swap")flashLayer(i);
+});
+let paint=null;
+$("rack").addEventListener("pointerdown",e=>{
+  const p=e.target.closest(".pad");if(!p)return;e.preventDefault();
+  const l=state.layers[+p.dataset.l];paint={val:l.steps[+p.dataset.s]?0:1};applyPad(p);
+});
+addEventListener("pointermove",e=>{if(!paint)return;const el=document.elementFromPoint(e.clientX,e.clientY);const p=el&&el.closest&&el.closest(".pad");if(p)applyPad(p)});
+const endPaint=()=>{if(paint){paint=null;changed()}};
+addEventListener("pointerup",endPaint);addEventListener("pointercancel",endPaint);
+function applyPad(p){
+  const l=state.layers[+p.dataset.l],s=+p.dataset.s;if(l.steps[s]===paint.val)return;
+  l.steps[s]=paint.val;p.classList.toggle("on",!!paint.val);if(paint.val)preview(l);
+}
+
+/* caption */
+let capKey="";
+function renderCaption(){
+  const g=G(),c=chordsOf(g),bars=cycleSteps()/16;
+  const chords=c.length>1?`<div class="chords" id="chords">${c.map((x,i)=>`<span data-i="${i}">${x.name}</span>`).join("")}</div>`:"";
+  const cyc=`<div class="cycle"><span>${bars===1?"Gjentas hver takt":`Møtes hver ${bars}. takt`}</span><div class="dots" id="dots">${bars>1?"<i></i>".repeat(Math.min(bars,16)):""}</div></div>`;
+  let h;
+  if(lesson){
+    const st=lessonSteps(),i=Math.min(lesson.i,st.length-1),s=st[i];
+    const nav=`<div class="lnav"><button id="lPrev" aria-label="Forrige"${i===0?" disabled":""}>‹</button><div class="bar"><i id="lProg"></i></div><button id="lNext" aria-label="Neste"${i===st.length-1?" disabled":""}>›</button><button class="x" id="lExit">Avslutt</button></div>`;
+    if(lesson.kind==="rules"){
+      const w=s.t.trim().split(" "),lastW=w.pop();
+      h=`<div class="eyebrow">Regel 0${i+1} · ${g.name}</div><div class="rdash">${st.map((_,k)=>`<i class="${k===i?"on":""}"></i>`).join("")}</div>
+        <div class="rtitle">${w.join(" ")} <em>${lastW}</em></div><div class="big">${md(s.s)}</div><div class="rhint">lytt: ${s.h}</div>${nav}`;
+    }else{
+      h=`<div class="eyebrow">Bygg opp ${i+1} / ${st.length} · ${g.name}</div><div class="big">${md(s.t)}</div>${chords}${nav}`;
+    }
+  }else{
+    const seen=new Map();state.layers.forEach(l=>{if(!l.mute&&!seen.has(l.len))seen.set(l.len,l)});
+    const sum=[...seen.values()].sort((a,b)=>b.len-a.len).map(l=>`${nameOf(l.sound)} i <b>${beats(l.len)}</b>`).join(" · ")||"Alle lag er dempet";
+    h=`<div class="eyebrow">${g.fam.name} · ${g.key} · ${g.mood}</div>${chords}<div class="big">${sum}</div>
+      <div class="desc">${state.mod?"Din variant. Trykk på undersjangeren igjen for å tilbakestille.":g.d}</div>${cyc}`;
+  }
+  $("cap").innerHTML=h;capKey="";
+  if(lesson){
+    $("lPrev").onclick=()=>goLesson(lesson.i-1);$("lNext").onclick=()=>goLesson(lesson.i+1);$("lExit").onclick=()=>setLesson(null);
+  }
+}
+function setLesson(kind){
+  if(kind&&lesson&&lesson.kind===kind)kind=null;
+  lesson=kind?{kind,i:0,start:playing&&last?Math.ceil(stepIdx/16)*16:0}:null;
+  $("lRules").setAttribute("aria-pressed",lesson&&lesson.kind==="rules"?"true":"false");
+  $("lBuild").setAttribute("aria-pressed",lesson&&lesson.kind==="build"?"true":"false");
+  if(kind&&!playing)setPlaying(true);
+  renderCaption();applyFocus();
+}
+function goLesson(i){const n=lessonSteps().length;if(!lesson||i<0||i>=n)return;lesson.i=i;lesson.start=playing?Math.ceil(stepIdx/16)*16:0;renderCaption();applyFocus()}
+$("lRules").onclick=()=>setLesson("rules");
+$("lBuild").onclick=()=>setLesson("build");
+
+function changed(full){state.mod=true;save();renderTop();if(full)renderRack();renderCaption();flashes.length=state.layers.length}
+function syncAll(){
+  $("bpm").value=state.bpm;$("bpmOut").textContent=state.bpm;$("swing").value=state.swing;$("swOut").textContent=state.swing+"%";
+  flashes=state.layers.map(()=>0);applyTheme();renderTop();renderRack();renderCaption();save();
+}
+$("variant").onclick=()=>{
+  state.layers.forEach((l,i)=>{const d=def(l);if(d&&Math.random()<.6)l.sound=pick(d[1]);if(i>0||Math.random()<.3)regen(l)});
+  changed(true);state.layers.forEach((l,i)=>flashLayer(i));
+};
+function setBpm(v){state.bpm=Math.max(70,Math.min(190,v));$("bpm").value=state.bpm;$("bpmOut").textContent=state.bpm;save()}
+$("bpm").oninput=e=>setBpm(+e.target.value);
+$("swing").oninput=e=>{state.swing=+e.target.value;$("swOut").textContent=state.swing+"%";save()};
+let taps=[];
+$("tap").onclick=()=>{const n=performance.now();taps=taps.filter(t=>n-t<2500);taps.push(n);if(taps.length>1)setBpm(Math.round(60000/((taps[taps.length-1]-taps[0])/(taps.length-1))))};
+$("play").onclick=()=>setPlaying(!playing);
+addEventListener("keydown",e=>{if(e.code==="Space"&&e.target.tagName!=="SELECT"&&e.target.tagName!=="BUTTON"&&$("sheet").hidden&&$("wiz").hidden){e.preventDefault();setPlaying(!playing)}
+  if(lesson&&$("sheet").hidden){if(e.key==="ArrowRight")goLesson(lesson.i+1);if(e.key==="ArrowLeft")goLesson(lesson.i-1)}});
+const de=document.documentElement,reqFs=de.requestFullscreen||de.webkitRequestFullscreen;
+if(reqFs){$("fs").hidden=false;$("fs").onclick=()=>{try{const d=document;if(d.fullscreenElement||d.webkitFullscreenElement){(d.exitFullscreen||d.webkitExitFullscreen).call(d)}else{const r=reqFs.call(de);r&&r.catch&&r.catch(()=>{})}}catch(e){}}}
+function setView(v){view=v;$("vPend").setAttribute("aria-pressed",v==="pend");$("vGrid").setAttribute("aria-pressed",v==="grid");try{localStorage.setItem("pendelgroove-view",v)}catch(e){}}
+$("vPend").onclick=()=>setView("pend");$("vGrid").onclick=()=>setView("grid");
+
+/* ================= drawing ================= */
+const cv=$("cv"),g=cv.getContext("2d");let W=0,H=0,flashes=[],bobs=[],rows=[];
+function resize(){const r=devicePixelRatio||1,b=cv.parentElement;W=b.clientWidth;H=b.clientHeight;cv.width=Math.max(1,W*r);cv.height=Math.max(1,H*r);g.setTransform(r,0,0,r,0,0)}
+new ResizeObserver(resize).observe(cv.parentElement);
+cv.addEventListener("pointerdown",e=>{
+  const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;let hit=null;
+  if(view==="grid"){const row=rows.find(o=>y>=o.y&&y<=o.y+o.h&&x<o.lw);if(row)hit=row.i}
+  else{let bd=900;bobs.forEach(b=>{const d=(b.x-x)**2+(b.y-y)**2;if(d<bd){bd=d;hit=b.i}})}
+  if(hit!=null){state.layers[hit].mute=!state.layers[hit].mute;changed(true)}
+});
+const hexA=(h,a)=>{const n=parseInt(h.slice(1),16);return`rgba(${n>>16},${n>>8&255},${n&255},${a})`};
+const FG="#ece9e4",MUTED="#8a8d97";
+function rr(x,y,w,h,r){g.beginPath();if(g.roundRect)g.roundRect(x,y,w,h,Math.min(r,w/2,h/2));else g.rect(x,y,w,h)}
+let lastBar=-1;
+function frame(){
+  if(playing&&ac){
+    const now=ac.currentTime;
+    while(queue.length&&queue[0].t<=now){last=queue.shift();state.layers.forEach((l,i)=>{if(!l.mute&&l.steps[last.s%l.len]&&playsAt(i,last.s))flashes[i]=1})}
+    if(last)pos=last.s+Math.min(1,Math.max(0,(now-last.t)/stepDur()));
+  }
+  const bar=playing&&last?Math.floor(last.s/16):-1;
+  if(bar!==lastBar){lastBar=bar;if(lesson)applyFocus();const ch=$("chords");if(ch){const k=bar<0?0:bar%chordsOf(G()).length;[...ch.children].forEach((c,i)=>c.classList.toggle("on",i===k))}}
+  if(lesson&&playing&&last){
+    const st=lessonSteps(),barDur=stepDur()*16;
+    let N=lesson.kind==="rules"?Math.max(4,Math.ceil(11/barDur/4)*4):Math.max(2,Math.ceil(7/barDur));
+    const el=(pos-lesson.start)/16/N;const pb=$("lProg");if(pb)pb.style.width=Math.max(0,Math.min(1,el))*100+"%";
+    if(el>=1&&lesson.i<st.length-1)goLesson(lesson.i+1);
+  }
+  if(view==="grid")drawGrid();else drawPend();
+  playhead();
+  flashes=flashes.map(f=>(f||0)*.86);
+  requestAnimationFrame(frame);
+}
+function playhead(){
+  state.layers.forEach((l,i)=>{
+    const pe=padEls[i];if(!pe)return;const n=playing&&last?last.s%l.len:-1;
+    if(nowIdx[i]!==n){if(pe[nowIdx[i]])pe[nowIdx[i]].classList.remove("now");if(pe[n])pe[n].classList.add("now");nowIdx[i]=n}
+  });
+  const c=cycleSteps(),bars=c/16,ds=$("dots");
+  if(ds&&bars>1){const cb=Math.floor((pos%c)/16);for(let k=0;k<ds.children.length;k++)ds.children[k].classList.toggle("on",playing&&k===cb)}
+}
+function alphaFor(i,s){if(!lesson)return state.layers[i].mute?.22:1;if(state.layers[i].mute)return .15;if(!playsAt(i,s))return .12;return isFocus(i)?1:.35}
+function drawPend(){
+  if(!W||!H)return;
+  g.clearRect(0,0,W,H);
+  const px=W/2,py=24,Lmax=Math.max(60,H-py-18);
+  const maxLen=Math.max(...state.layers.map(l=>l.len));
+  const A=Math.min(.62,Math.asin(Math.min(1,(W/2-24)/Lmax)));
+  const acc=G().acc,cur=playing&&last?last.s:0;
+  g.strokeStyle=hexA(acc,.28);g.lineWidth=1;g.beginPath();g.moveTo(px-W*.3,py);g.lineTo(px+W*.3,py);g.stroke();
+  for(let k=-10;k<=10;k++){const x=px+k*W*.03;g.beginPath();g.moveTo(x,py);g.lineTo(x,py+4);g.stroke()}
+  g.strokeStyle="rgba(120,124,134,.35)";g.setLineDash([3,5]);g.beginPath();g.moveTo(px,py);g.lineTo(px,py+Lmax+8);g.stroke();g.setLineDash([]);
+  bobs=[];
+  state.layers.map((l,i)=>i).sort((a,b)=>state.layers[b].len-state.layers[a].len).forEach(i=>{
+    const l=state.layers[i],col=l.color,al=alphaFor(i,cur);
+    const R=Math.max(.16,(l.len/maxLen)**2)*Lmax;
+    const ang=ph=>-A*Math.cos(2*Math.PI*ph);
+    const pt=(th,r=R)=>[px+r*Math.sin(th),py+r*Math.cos(th)];
+    g.strokeStyle=hexA(col,.18*al);g.setLineDash([2,6]);g.beginPath();g.arc(px,py,R,Math.PI/2-A,Math.PI/2+A);g.stroke();g.setLineDash([]);
+    for(let s=0;s<l.len;s++){if(!l.steps[s])continue;const ph=s/l.len,[x,y]=pt(ang(ph),R+(ph<.5?7:-7));g.fillStyle=hexA(col,.6*al);g.beginPath();g.arc(x,y,2.5,0,7);g.fill()}
+    const ph=(pos%l.len)/l.len,th=ang(ph);
+    for(let k=1;k<=14;k++){const[x0,y0]=pt(ang(ph-(k-1)*.006)),[x1,y1]=pt(ang(ph-k*.006));g.strokeStyle=hexA(col,(1-k/14)*.7*al);g.lineWidth=2;g.beginPath();g.moveTo(x0,y0);g.lineTo(x1,y1);g.stroke()}
+    const[bx,by]=pt(th),f=flashes[i]||0;
+    g.strokeStyle=hexA(col,.75*al);g.lineWidth=1.3;g.beginPath();g.moveTo(px,py);g.lineTo(bx,by);g.stroke();
+    if(f>.05){g.strokeStyle=hexA(col,f*.6);g.lineWidth=1;g.beginPath();g.arc(bx,by,11+(1-f)*16,0,7);g.stroke()}
+    g.shadowColor=col;g.shadowBlur=8+f*26;g.fillStyle=hexA(col,(.35+f*.65)*al);g.strokeStyle=hexA(col,al);g.lineWidth=1.5;
+    g.beginPath();g.arc(bx,by,8+f*5,0,7);g.fill();g.stroke();g.shadowBlur=0;
+    bobs.push({i,x:bx,y:by});
+  });
+  g.fillStyle=acc;g.beginPath();g.arc(px,py,3.5,0,7);g.fill();
+}
+function drawGrid(){
+  if(!W||!H)return;
+  g.clearRect(0,0,W,H);
+  const n=state.layers.length,padT=30,padB=24,lw=Math.round(Math.min(150,Math.max(86,W*.22))),gx=lw+6,gw=W-gx-12,gap=6;
+  const rh=Math.max(18,(H-padT-padB-gap*(n-1))/n),cw=gw/16;
+  const cur=playing&&last?last.s:-1,g0=cur>=0?Math.floor(cur/16)*16:(lesson?lesson.start:0);
+  const bars=cycleSteps()/16,ch=chordAt(g0),acc=G().acc;
+  g.textBaseline="middle";g.font='600 10px "IBM Plex Mono", monospace';g.fillStyle=MUTED;g.textAlign="left";
+  g.fillText(`TAKT ${(g0/16)%bars+1} / ${bars}`,8,14);
+  g.textAlign="right";g.fillStyle=acc;g.font='600 12px "IBM Plex Mono", monospace';g.fillText(ch.name,W-12,14);
+  // beat lines + labels
+  for(let b=0;b<4;b++){const x=gx+b*4*cw;g.strokeStyle="rgba(140,144,154,.22)";g.lineWidth=1;g.beginPath();g.moveTo(x,padT-4);g.lineTo(x,H-padB+2);g.stroke();
+    g.fillStyle=MUTED;g.textAlign="left";g.font='500 11px "IBM Plex Mono", monospace';g.fillText(String(b+1),x+3,H-padB/2+2)}
+  rows=[];
+  state.layers.forEach((l,i)=>{
+    const y=padT+i*(rh+gap),col=l.color,foc=!lesson||isFocus(i),dimA=l.mute?.25:(foc?1:.4);
+    rows.push({i,y,h:rh,lw});
+    // label
+    g.textAlign="left";g.fillStyle=hexA(FG.replace("#","#"),1);
+    g.globalAlpha=dimA;g.fillStyle=col;g.beginPath();g.arc(9,y+rh/2-(rh>34?7:0),4,0,7);g.fill();
+    g.fillStyle=FG;g.font=`600 ${rh>34?13:12}px "IBM Plex Sans", sans-serif`;g.fillText(nameOf(l.sound),19,y+rh/2-(rh>34?7:0),lw-22);
+    if(rh>34){g.fillStyle=MUTED;g.font='11px "IBM Plex Sans", sans-serif';g.fillText(l.mute?"dempet":rhythmText(l),19,y+rh/2+9,lw-22)}
+    g.globalAlpha=1;
+    // lane
+    g.fillStyle=hexA(col,foc?.07:.03);rr(gx,y,gw,rh,6);g.fill();
+    // pitches for melodic layers
+    const role=roleOf(l.sound),mel=(role==="bass"||role==="lead")&&!CHORDAL.has(l.sound);
+    const hits=[];for(let s=0;s<16;s++){const gs=g0+s;if(l.steps[gs%l.len])hits.push(s)}
+    let mn=0,mx=0;if(mel&&hits.length){const ps=hits.map(s=>noteSemi(l,g0+s));mn=Math.min(...ps);mx=Math.max(...ps)}
+    // restart markers
+    if(16%l.len){for(let s=0;s<16;s++){if((g0+s)%l.len===0){const x=gx+s*cw;g.fillStyle=hexA(col,.85*dimA);g.beginPath();g.moveTo(x,y);g.lineTo(x+7,y);g.lineTo(x,y+7);g.closePath();g.fill()}}}
+    hits.forEach(s=>{
+      const gs=g0+s,w=Math.min(gapSteps(l,gs),DUR[l.sound]||1,16-s),x=gx+s*cw+1.5,ww=w*cw-3;
+      const on=playsAt(i,gs)&&!l.mute,active=cur>=gs&&cur<gs+w&&on&&playing;
+      let a=on?(foc?.95:.4):.12;
+      g.fillStyle=active?FG:hexA(col,a);
+      if(l.sound==="pad"||l.sound==="chord"){const hh=rh*.62;rr(x,y+(rh-hh)/2,ww,hh,5);g.fill();
+        if(ww>28){g.fillStyle=active?"#000":hexA("#000000",.75);g.font='600 11px "IBM Plex Sans", sans-serif';g.textAlign="left";g.fillText(chordAt(gs).name,x+7,y+rh/2)}}
+      else if(mel){const nh=Math.max(4,Math.min(10,rh*.18)),span=mx-mn||1,yy=y+rh-4-nh-((noteSemi(l,gs)-mn)/span)*(rh-8-nh);rr(x,mx===mn?y+rh/2-nh/2:yy,ww,nh,nh/2);g.fill()}
+      else{const hh=rh*(role==="hat"?.5:role==="perc"||role==="fx"?.6:.78);rr(x,y+(rh-hh)/2,ww,hh,4);g.fill()}
+    });
+    if(!hits.length){g.fillStyle=MUTED;g.font='11px "IBM Plex Sans", sans-serif';g.textAlign="left";g.fillText("ingen treff i denne takten",gx+8,y+rh/2)}
+  });
+  // playhead
+  if(cur>=0){const x=gx+(pos-g0)*cw;g.strokeStyle=FG;g.lineWidth=2;g.beginPath();g.moveTo(x,padT-6);g.lineTo(x,H-padB+2);g.stroke()}
+}
+/* ================= start wizard ================= */
+const hadSaved=(()=>{try{return !!localStorage.getItem("pendelgroove-v4")}catch(e){return false}})();
+let wiz={step:0,goal:null,fam:null};
+const GOALS=[
+ {id:"learn",t:"Lær en sjanger",p:"Hør 3 regler som forklarer hvordan sjangeren er bygd. Rutenettet viser det du hører.",rec:true,
+  ic:'<path d="M4 6h16M4 12h16M4 18h10"/>'},
+ {id:"build",t:"Bygg en låt",p:"Start med kicken og legg til ett lag om gangen, med forklaring underveis.",
+  ic:'<path d="M4 20h16M7 16h10M10 12h4M12 4v4"/>'},
+ {id:"jam",t:"Jam fritt",p:"Alt spiller med en gang. Mal inn slag, bytt lyder og lag nye varianter.",
+  ic:'<circle cx="8" cy="17" r="3"/><circle cx="18" cy="15" r="3"/><path d="M11 17V5l10-2v12"/>'}];
+function setSimple(on){document.body.classList.toggle("simple",on);$("adv").setAttribute("aria-pressed",String(!on));try{localStorage.setItem("pendelgroove-simple",on?"1":"0")}catch(e){}}
+$("adv").onclick=()=>setSimple(!document.body.classList.contains("simple"));
+function openWiz(){wiz={step:0,goal:null,fam:null};$("wiz").hidden=false;renderWiz()}
+function closeWiz(){$("wiz").hidden=true}
+function renderWiz(){
+  const st=wiz.step,dots=[0,1,2].map(i=>`<i class="${i<=st?"on":""}"></i>`).join("");
+  let h=`<div class="wz-top"><span class="brand">PENDEL<br><span>GROOVE</span></span><div class="wz-dots" aria-label="Steg ${st+1} av 3">${dots}</div><button class="wz-skip" data-w="skip">Hopp over</button></div>`;
+  if(st===0){
+    h+=`<div class="wz-head"><div class="eyebrow">Steg 1 av 3</div><h1 id="wzT">Hva vil du <em>gjøre?</em></h1><p>Velg én ting å starte med. Du kommer tilbake hit ved å trykke på logoen øverst til venstre.</p></div>
+    <div class="wz-grid goals">${GOALS.map(g=>`<button class="wz-card" data-goal="${g.id}">${g.rec?'<span class="rec">Anbefalt</span>':""}<svg class="gi" viewBox="0 0 24 24">${g.ic}</svg><h3>${g.t}</h3><p>${g.p}</p></button>`).join("")}</div>
+    <div class="wz-foot">${hadSaved?`<button class="wz-resume" data-w="resume">Fortsett med ${G().name} ›</button>`:""}</div>`;
+  }else if(st===1){
+    h+=`<div class="wz-head"><div class="eyebrow">Steg 2 av 3</div><h1 id="wzT">Velg <em>stil</em></h1><p>Seks familier. Neste steg velger du type innen familien.</p></div>
+    <div class="wz-grid">${FAMILIES.map(f=>{const b=f.subs.map(s=>s.bpm);return`<button class="wz-card" style="--fc:${f.c[0]}" data-fam="${f.id}"><h3><i></i>${f.name}</h3><p>${f.about}</p><small>${Math.min(...b)}–${Math.max(...b)} BPM</small><span class="tease">${f.subs.map(s=>s.name).join(" · ")}</span></button>`}).join("")}</div>
+    <div class="wz-foot"><button class="wz-back" data-w="back">‹ Tilbake</button></div>`;
+  }else{
+    const f=FAMILIES.find(x=>x.id===wiz.fam),verb={learn:"Trykk på en type for å høre de 3 reglene.",build:"Trykk på en type for å bygge den lag for lag.",jam:"Trykk på en type for å starte."}[wiz.goal];
+    h+=`<div class="wz-head"><div class="eyebrow">Steg 3 av 3 · ${f.name}</div><h1 id="wzT">Velg <em>type</em></h1><p>${verb} Lyden starter med en gang.</p></div>
+    <div class="wz-grid subs3">${f.subs.map(s=>`<button class="wz-card" style="--fc:${s.acc}" data-sub="${s.id}"><h3><i></i>${s.name}</h3><small>${s.bpm} BPM · ${s.key}</small><p>${s.mood}. ${s.d}</p><span class="tease">Regel 1: <b>${s.R[0].t}</b></span></button>`).join("")}</div>
+    <div class="wz-foot"><button class="wz-back" data-w="back">‹ Tilbake</button></div>`;
+  }
+  $("wzIn").innerHTML=h;$("wiz").scrollTop=0;
+  const first=$("wzIn").querySelector(".wz-card");first&&first.focus({preventScroll:true});
+}
+function startFromWiz(id){
+  if(lesson)setLesson(null);
+  chooseGenre(id);closeWiz();
+  if(wiz.goal==="jam"){setSimple(false);setView("pend");if(!playing)setPlaying(true)}
+  else{setSimple(true);setView("grid");setLesson(wiz.goal==="build"?"build":"rules")}
+}
+$("wiz").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.goal){wiz.goal=b.dataset.goal;wiz.step=1;renderWiz()}
+  else if(b.dataset.fam){wiz.fam=b.dataset.fam;wiz.step=2;renderWiz()}
+  else if(b.dataset.sub)startFromWiz(b.dataset.sub);
+  else if(b.dataset.w==="back"){wiz.step--;renderWiz()}
+  else if(b.dataset.w==="skip"||b.dataset.w==="resume")closeWiz();
+});
+addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("wiz").hidden)closeWiz()});
+$("home").onclick=()=>{if(playing)setPlaying(false);openWiz()};
+try{setSimple(localStorage.getItem("pendelgroove-simple")!=="0")}catch(e){setSimple(true)}
+
+syncAll();setView(view);openWiz();requestAnimationFrame(frame);
+</script>
+
+</body>
+</html>
