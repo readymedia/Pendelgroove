@@ -1,10 +1,29 @@
 {
   "name": "pendelgroove",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "private": true,
-  "description": "Polyrytmer som pendler. 23 EDM-sjangre med regler og forklaringer. laget for touch i 16:9.",
+  "description": "Touch-instrument som lærer bort EDM-sjangre: 23 undersjangre, 3 regler hver, pendel og rutenett. Utviklet med Claude (Anthropic).",
   "scripts": {
     "dev": "npx --yes serve public",
-    "build": "echo 'Statisk side, ingen bygging nødvendig'"
-  }
+    "build": "echo 'Statisk side, ingen bygging nødvendig'",
+    "test": "node tests/validate.mjs",
+    "docs": "node scripts/gen-genre-docs.mjs"
+  },
+  "type": "module",
+  "author": "readymedia <magnus@readymedia.no>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/readymedia/pendelgroove"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "edm",
+    "polyrhythm",
+    "web-audio",
+    "sequencer",
+    "music-education",
+    "claude"
+  ]
 }
